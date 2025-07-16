@@ -14,3 +14,6 @@ google-generativeai==0.8.3
 boto3==1.35.67
 python-dotenv==1.0.1
 
+
+langchain_google_genai
+
