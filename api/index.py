@@ -10,11 +10,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from main import app
 
-# Exportar a aplicação para o Vercel
-def handler(request, response):
-    return app(request, response)
+# O Vercel espera que a aplicação Flask seja exportada diretamente como 'app'
+# Não é necessário uma função handler para request/response
 
-# Para compatibilidade com Vercel
+# Para compatibilidade com Vercel (se rodar localmente com `python api/index.py`)
 if __name__ == "__main__":
     app.run()
+
 
