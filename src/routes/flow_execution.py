@@ -3,6 +3,7 @@ from flask_cors import cross_origin
 import uuid
 from datetime import datetime
 from src.services.flow_executor import FlowExecutor
+from src.services.langchain_agent import invoke_langchain_agent
 
 flow_execution_bp = Blueprint("flow_execution", __name__)
 flow_executor = FlowExecutor()
@@ -19,34 +20,24 @@ def execute_flow_direct():
         
         flow_data = data.get("flow_data")
         input_data = data.get("input", "")
+        user_id = data.get("user_id") # Obter user_id da requisição
         
         if not flow_data:
             return jsonify({"error": "flow_data é obrigatório"}), 400
         
-        # Validar fluxo
-        validation = flow_executor.validate_flow(flow_data)
-        if not validation["valid"]:
-            return jsonify({
-                "error": "Fluxo inválido",
-                "validation_errors": validation["errors"]
-            }), 400
+        if not user_id:
+            return jsonify({"error": "user_id é obrigatório"}), 400
+
+        # Aqui, em vez de executar o flow_executor, vamos invocar o agente LangChain
+        # O flow_data pode ser usado para configurar o agente (quais ferramentas ele tem acesso, etc.)
+        # Por enquanto, vamos passar o input_data diretamente para o agente
+        result_agent = invoke_langchain_agent(input_data, user_id)
         
-        # Executar fluxo
-        result = flow_executor.execute_flow(flow_data, input_data)
-        
-        if result["success"]:
-            return jsonify({
-                "success": True,
-                "output": result["output"],
-                "execution_path": result["execution_path"],
-                "node_outputs": result["node_outputs"],
-                "validation_warnings": validation.get("warnings", [])
-            }), 200
-        else:
-            return jsonify({
-                "success": False,
-                "error": result["error"]
-            }), 400
+        return jsonify({
+            "success": True,
+            "output": result_agent,
+            "message": "Agente LangChain invocado com sucesso."
+        }), 200
         
     except Exception as e:
         return jsonify({"error": f"Erro ao executar fluxo: {str(e)}"}), 500
@@ -86,4 +77,3 @@ def test_endpoint():
         "message": "API de execução de fluxos está funcionando!",
         "timestamp": datetime.utcnow().isoformat()
     }), 200
-
