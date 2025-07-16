@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from flask import Flask, send_from_directory
 from flask_cors import CORS
-from src.routes.flow_dynamodb import flow_dynamodb_bp
 from src.routes.flow_execution import flow_execution_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
@@ -19,8 +18,7 @@ app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
 # Configurar CORS
 CORS(app, origins="*")
 
-# Registrar blueprints
-app.register_blueprint(flow_dynamodb_bp, url_prefix='/api')
+# Registrar apenas o blueprint de execução (sem DynamoDB)
 app.register_blueprint(flow_execution_bp, url_prefix='/api/flow')
 
 @app.route('/', defaults={'path': ''})
@@ -39,6 +37,9 @@ def serve(path):
         else:
             return "index.html not found", 404
 
+@app.route('/health')
+def health():
+    return {"status": "ok", "message": "API funcionando"}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
