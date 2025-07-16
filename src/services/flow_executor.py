@@ -12,10 +12,10 @@ class FlowExecutor:
         warnings = []
 
         if "nodes" not in flow_data or not isinstance(flow_data["nodes"], list):
-            errors.append("O fluxo deve conter uma lista de nós (\'nodes\').")
+            errors.append("O fluxo deve conter uma lista de nós ('nodes').")
             
         if "edges" not in flow_data or not isinstance(flow_data["edges"], list):
-            errors.append("O fluxo deve conter uma lista de arestas (\'edges\').")
+            errors.append("O fluxo deve conter uma lista de arestas ('edges').")
 
         node_ids = set()
         for node in flow_data.get("nodes", []):
@@ -32,20 +32,20 @@ class FlowExecutor:
             
             if node.get("type") == "agent":
                 if "agentType" not in node.get("data", {}):
-                    errors.append(f"Nó de agente {node.get(\'id\')} sem agentType.")
+                    errors.append(f"Nó de agente {node.get('id')} sem agentType.")
                 if "provider" not in node.get("data", {}):
-                    errors.append(f"Nó de agente {node.get(\'id\')} sem provedor.")
+                    errors.append(f"Nó de agente {node.get('id')} sem provedor.")
                 if "model" not in node.get("data", {}):
-                    errors.append(f"Nó de agente {node.get(\'id\')} sem modelo.")
+                    errors.append(f"Nó de agente {node.get('id')} sem modelo.")
 
         for edge in flow_data.get("edges", []):
             if "source" not in edge or "target" not in edge:
                 errors.append(f"Aresta mal formatada: {edge}")
             else:
                 if edge["source"] not in node_ids:
-                    errors.append(f"Aresta com nó de origem inválido: {edge["source"]}")
+                    errors.append(f"Aresta com nó de origem inválido: {edge['source']}")
                 if edge["target"] not in node_ids:
-                    errors.append(f"Aresta com nó de destino inválido: {edge["target"]}")
+                    errors.append(f"Aresta com nó de destino inválido: {edge['target']}")
 
         return {"valid": len(errors) == 0, "errors": errors, "warnings": warnings}
 
@@ -189,7 +189,7 @@ class FlowExecutor:
                     "bool": bool
                 }
                 
-                # Substituir \'length\' por \'len(input)\' se necessário
+                # Substituir 'length' por 'len(input)' se necessário
                 if "length" in condition:
                     condition = condition.replace("length", "len(str(input))")
                 
@@ -200,7 +200,7 @@ class FlowExecutor:
                 return {"success": True, "output": output}
                 
             except Exception as e:
-                return {"success": False, "error": f"Erro ao avaliar condição \'{condition}\': {str(e)}"}
+                return {"success": False, "error": f"Erro ao avaliar condição '{condition}': {str(e)}"}
         
         else:
             return {"success": False, "error": f"Tipo de condição desconhecido: {condition_type}"}
@@ -273,6 +273,5 @@ class FlowExecutor:
             "execution_path": execution_path, 
             "node_outputs": node_outputs
         }
-
 
 
