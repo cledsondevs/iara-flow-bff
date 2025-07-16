@@ -6,6 +6,8 @@ class AIService:
     def __init__(self):
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
+        self.recipe_api_key = os.getenv("RECIPE_API_KEY")
+        self.recipe_app_id = os.getenv("RECIPE_APP_ID")
         
         if self.openai_api_key:
             openai.api_key = self.openai_api_key
@@ -45,5 +47,7 @@ class AIService:
     def generate_content(self, topic, provider="openai", model="gpt-3.5-turbo", instructions="Gere conteúdo sobre o tópico."):
         prompt = f"{instructions}\nTópico: {topic}"
         return self.get_completion(prompt, provider, model)
+
+
 
 
