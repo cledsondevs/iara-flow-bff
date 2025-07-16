@@ -5,8 +5,8 @@ from langchain.tools import tool
 import os
 
 # Carregue as credenciais do Supabase do seu ambiente
-supabase_url = os.environ.get("SUPABASE_URL")
-supabase_key = os.environ.get("SUPABASE_SERVICE_KEY")
+supabase_url = "https://srwpvonfxryexexowdle.supabase.co"
+supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyd3B2b25meHJ5ZXhleG93ZGxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIxMTEyMTEsImV4cCI6MjA2NzY4NzIxMX0.YVpaiv9weKglcm5iFqKIqhdHEOq_IepFVFC0C_b4pyw"
 
 supabase: Client = create_client(supabase_url, supabase_key)
 
