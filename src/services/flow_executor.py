@@ -25,7 +25,7 @@ class FlowExecutor:
                 node_ids.add(node["id"])
             
             if "type" not in node:
-                errors.append(f"Nó {node.get('id')} sem tipo.")
+                errors.append(f"Nó {node.get(\'id\')} sem tipo.")
             
             if "data" not in node:
                 errors.append(f"Nó {node.get('id')} sem dados.")
