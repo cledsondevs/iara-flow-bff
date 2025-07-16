@@ -28,7 +28,7 @@ class FlowExecutor:
                 errors.append(f"Nó {node.get('id')} sem tipo.")
             
             if "data" not in node:
-                errors.append(f"Nó {node.get(\'id\')} sem dados.")
+                errors.append(f"Nó {node.get('id')} sem dados.")
             
             if node.get("type") == "agent":
                 if "agentType" not in node.get("data", {}):
