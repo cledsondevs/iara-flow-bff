@@ -6,6 +6,10 @@ from typing import Dict, List, Optional, Any
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from pgvector.psycopg2 import register_vector
+
+# Registrar o tipo vector globalmente para todas as novas conexões
+register_vector()
+
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.messages import HumanMessage, AIMessage
 
