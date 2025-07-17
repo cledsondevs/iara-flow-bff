@@ -33,6 +33,7 @@ class MemoryService:
             with self._get_connection() as conn:
                 with conn.cursor() as cur:
                     # Tabela para conversas
+                    cur.execute("CREATE EXTENSION IF NOT EXISTS vector;");
                     cur.execute("""
                         CREATE TABLE IF NOT EXISTS conversations (
                             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
