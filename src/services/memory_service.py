@@ -15,12 +15,25 @@ class MemoryService:
         if not self.database_url:
             raise ValueError("DATABASE_URL não configurada nas variáveis de ambiente.")
         
+        # Criar a extensão vector antes de qualquer outra operação
+        self._ensure_vector_extension()
+
         self.embeddings = OpenAIEmbeddings(
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
         
         self._create_tables()
     
+    def _ensure_vector_extension(self):
+        """Garante que a extensão vector esteja criada no banco de dados."""
+        try:
+            with psycopg2.connect(self.database_url) as conn:
+                conn.autocommit = True # Necessário para CREATE EXTENSION
+                with conn.cursor() as cur:
+                    cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+        except Exception as e:
+            print(f"Erro ao garantir extensão vector: {e}")
+
     def _get_connection(self):
         """Obter conexão com o banco de dados"""
         conn = psycopg2.connect(self.database_url, cursor_factory=RealDictCursor)
