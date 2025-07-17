@@ -17,7 +17,6 @@ sdist/
 var/
 wheels/
 *.egg-info/
-.installed.cfg
 *.egg
 MANIFEST
 
@@ -27,6 +26,7 @@ env/
 ENV/
 
 # Environment Variables
+.env
 .env.local
 .env.production
 
@@ -49,4 +49,5 @@ Thumbs.db
 
 # Vercel
 .vercel
+
 
