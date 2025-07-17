@@ -5,10 +5,13 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import psycopg2.extensions
 from pgvector.psycopg2 import register_vector
 
 # Registrar o tipo vector globalmente para todas as novas conexões
-register_vector()
+# Isso garante que o tipo 'vector' seja reconhecido pelo psycopg2
+# antes de qualquer operação que o utilize.
+psycopg2.extensions.register_type(register_vector(None))
 
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.messages import HumanMessage, AIMessage
@@ -19,84 +22,25 @@ class MemoryService:
         if not self.database_url:
             raise ValueError("DATABASE_URL não configurada nas variáveis de ambiente.")
         
-        # Criar a extensão vector antes de qualquer outra operação
-        self._ensure_vector_extension()
-
         self.embeddings = OpenAIEmbeddings(
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
         
         self._create_tables()
     
-    def _ensure_vector_extension(self):
-        """Garante que a extensão vector esteja criada no banco de dados."""
-        try:
-            with psycopg2.connect(self.database_url) as conn:
-                conn.autocommit = True # Necessário para CREATE EXTENSION
-                with conn.cursor() as cur:
-                    cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-        except Exception as e:
-            print(f"Erro ao garantir extensão vector: {e}")
-
     def _get_connection(self):
         """Obter conexão com o banco de dados"""
-        print("Attempting to connect to database...")
         conn = psycopg2.connect(self.database_url, cursor_factory=RealDictCursor)
-        print("Connection established. Registering vector type...")
-        register_vector(conn)
-        print("Vector type registered.")
         return conn
     
     def _create_tables(self):
         """Criar tabelas necessárias para memória"""
         try:
-            # Conectar sem registrar o tipo vector inicialmente para criar a extensão
-            print("Checking for vector extension...")
-            with psycopg2.connect(self.database_url) as conn_no_vector:
-                with conn_no_vector.cursor() as cur_no_vector:
-                    cur_no_vector.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-                conn_no_vector.commit() # Commit explícito aqui
-            print("Vector extension ensured.")
-            
-            # Agora, obter uma conexão com o tipo vector registrado e criar as tabelas
-            print("Attempting to create tables...")
             with self._get_connection() as conn:
                 with conn.cursor() as cur:
-                        CREATE TABLE IF NOT EXISTS conversations (
-                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                            user_id VARCHAR(255) NOT NULL,
-                            session_id VARCHAR(255) NOT NULL,
-                            message TEXT NOT NULL,
-                            response TEXT NOT NULL,
-                            message_embedding vector(1536),
-                            response_embedding vector(1536),
-                            metadata JSONB,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        );
-                        CREATE INDEX IF NOT EXISTS idx_conversations_user_session 
-                        ON conversations (user_id, session_id, created_at);
-                    """)
-                    
-                    # Tabela para memória de longo prazo
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS long_term_memory (
-                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                            user_id VARCHAR(255) NOT NULL,
-                            content TEXT NOT NULL,
-                            content_embedding vector(1536),
-                            memory_type VARCHAR(100) NOT NULL,
-                            importance_score FLOAT DEFAULT 0.0,
-                            metadata JSONB,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        );
-                        CREATE INDEX IF NOT EXISTS idx_long_term_memory_user_type 
-                        ON long_term_memory (user_id, memory_type, importance_score);
-                    """)
-                    
-                    conn.commit()
-        except Exception as e:
-            print(f"Erro ao criar tabelas: {e}")
+                    cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+                    conn.commit() # Commit explícito para a criação da extensão
+                    # Tabela para conversas
     
     def save_message(self, user_id: str, session_id: str, message: str, response: str, metadata: Optional[Dict] = None):
         """Salvar mensagem e resposta na memória"""
