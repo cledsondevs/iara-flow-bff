@@ -11,9 +11,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from src.routes.agent_routes import agent_bp
+from src.services.memory_service import MemoryService
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
+
+# Inicializar MemoryService para garantir que as tabelas sejam criadas
+try:
+    memory_service = MemoryService()
+except Exception as e:
+    print(f"Erro ao inicializar MemoryService: {e}")
 
 # Configurar CORS
 CORS(app, origins="*")
