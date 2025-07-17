@@ -10,8 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from flask import Flask, send_from_directory
 from flask_cors import CORS
-from src.routes.flow_postgresql import flow_postgresql_bp
-from src.routes.flow_execution import flow_execution_bp
+from src.routes.agent_routes import agent_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
@@ -20,8 +19,8 @@ app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
 CORS(app, origins="*")
 
 # Registrar blueprints
-app.register_blueprint(flow_postgresql_bp, url_prefix="/api")
-app.register_blueprint(flow_execution_bp, url_prefix="/api/flow")
+app.register_blueprint(agent_bp, url_prefix="/api")
+
 @app.route('/<path:path>')
 def serve(path):
     static_folder_path = app.static_folder

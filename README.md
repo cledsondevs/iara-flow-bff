@@ -1,147 +1,138 @@
-# Iara Flow Backend
+# IARA Flow BFF - Orquestrador de Agentes de IA
 
-Backend para aplicação de geração de agentes de IA que interpreta e executa fluxos JSON.
+Backend Flask que atua como um orquestrador para agentes de IA autônomos. Sua principal função é receber requisições de um frontend (React) e invocar um agente de IA autônomo baseado em LangChain para processar prompts de usuários.
 
-## Funcionalidades
+## Características
 
-- Interpretação e execução de fluxos JSON com nós de agentes de IA
-- Integração com APIs de IA (OpenAI e Google Gemini)
-- Armazenamento no DynamoDB (AWS)
-- API REST para gerenciamento de fluxos e execuções
-- Suporte a diferentes tipos de agentes (chatbot, analyzer, generator)
-- Validação de fluxos antes da execução
+- **Orquestrador de Agentes**: Gerencia agentes de IA autônomos baseados em LangChain
+- **Memória de Longo Prazo**: Utiliza PostgreSQL com pgvector para armazenar e recuperar memórias
+- **Ferramentas Autônomas**: Agente tem acesso a ferramentas de busca web, leitura/escrita de arquivos
+- **API RESTful**: Interface simples para comunicação com frontend
+- **Embeddings**: Busca semântica usando OpenAI Embeddings
 
 ## Tecnologias
 
-- Flask (Python)
-- DynamoDB (AWS)
-- OpenAI API
-- Google Gemini API
-- Flask-CORS para integração frontend
+- **Backend**: Flask + Python
+- **Banco de Dados**: PostgreSQL com extensão pgvector
+- **IA**: LangChain + OpenAI GPT-4
+- **Embeddings**: OpenAI Embeddings para busca semântica
+- **Ferramentas**: DuckDuckGo Search, File Management
 
-## Estrutura da API
+## Estrutura do Projeto
 
-### Fluxos
-- `POST /api/flows` - Criar fluxo
-- `GET /api/flows` - Listar fluxos
-- `GET /api/flows/{id}` - Obter fluxo específico
-- `PUT /api/flows/{id}` - Atualizar fluxo
-- `DELETE /api/flows/{id}` - Deletar fluxo
-- `POST /api/flows/{id}/execute` - Executar fluxo
-- `POST /api/flows/{id}/validate` - Validar fluxo
-
-### Execuções
-- `GET /api/flows/{id}/executions` - Listar execuções de um fluxo
-- `GET /api/executions/{id}` - Obter execução específica
+```
+src/
+├── main.py                           # Aplicação Flask principal
+├── routes/
+│   └── agent_routes.py              # Rotas da API do agente
+└── services/
+    ├── langchain_agent_service.py   # Serviço principal do agente
+    └── memory_service.py            # Gerenciamento de memória com pgvector
+```
 
 ## Configuração
 
 ### Variáveis de Ambiente
 
-```
-OPENAI_API_KEY=sua_chave_openai
-GEMINI_API_KEY=sua_chave_gemini
-AWS_ACCESS_KEY_ID=sua_chave_aws
-AWS_SECRET_ACCESS_KEY=sua_chave_secreta_aws
-AWS_REGION=us-east-1
-```
+Crie um arquivo `.env` na raiz do projeto:
 
-### Desenvolvimento Local
+```env
+# Configurações do banco de dados PostgreSQL
+DATABASE_URL=postgresql://postgres:postgres@54.162.170.1:5432/iara_db
 
-1. Instalar dependências:
-```bash
-pip install -r requirements.txt
-```
+# Configurações do OpenAI
+OPENAI_API_KEY=your_openai_api_key_here
 
-2. Configurar variáveis de ambiente no arquivo `.env`
-
-3. Executar:
-```bash
-python src/main.py
+# Configurações do LangChain (opcional)
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=your_langchain_api_key_here
 ```
 
-### Deploy no Vercel
+### Instalação
 
-1. Configurar variáveis de ambiente no painel do Vercel:
-   - `openai_api_key`
-   - `gemini_api_key`
-   - `aws_access_key_id`
-   - `aws_secret_access_key`
+1. Clone o repositório
+2. Instale as dependências:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Configure as variáveis de ambiente
+4. Execute a aplicação:
+   ```bash
+   python src/main.py
+   ```
 
-2. Fazer deploy:
-```bash
-vercel --prod
-```
+## API Endpoints
 
-## Estrutura do Projeto
+### POST /api/agent/chat
+Conversar com o agente de IA
 
-```
-├── src/
-│   ├── main.py              # Ponto de entrada da aplicação
-│   ├── models/              # Modelos de dados
-│   ├── routes/              # Rotas da API
-│   └── services/            # Serviços (IA, DynamoDB, Executor)
-├── api/
-│   └── index.py             # Ponto de entrada para Vercel
-├── requirements.txt         # Dependências Python
-├── vercel.json             # Configuração do Vercel
-└── .env                    # Variáveis de ambiente (local)
-```
-
-## Formato do Fluxo JSON
-
+**Request:**
 ```json
 {
-  "nodes": [
-    {
-      "id": "1",
-      "type": "data",
-      "data": {
-        "label": "User Input",
-        "dataType": "input",
-        "userInput": "Texto do usuário"
-      }
-    },
-    {
-      "id": "2", 
-      "type": "agent",
-      "data": {
-        "label": "Chat Assistant",
-        "agentType": "chatbot",
-        "provider": "openai",
-        "model": "gpt-4",
-        "temperature": 0.7,
-        "instructions": "Instruções para o agente"
-      }
-    }
-  ],
-  "edges": [
-    {
-      "source": "1",
-      "target": "2"
-    }
-  ]
+  "message": "Olá, como você pode me ajudar?",
+  "user_id": "user123",
+  "session_id": "session456" // opcional
 }
 ```
 
-## Tipos de Nós Suportados
+**Response:**
+```json
+{
+  "success": true,
+  "response": "Olá! Sou um assistente de IA...",
+  "session_id": "session456",
+  "timestamp": "2024-01-01T12:00:00Z"
+}
+```
 
-### Data Nodes
-- `input`: Entrada do usuário
-- `output`: Saída do fluxo
+### GET /api/agent/memory
+Recuperar memória do agente
 
-### Agent Nodes
-- `chatbot`: Assistente conversacional
-- `analyzer`: Analisador de dados
-- `generator`: Gerador de conteúdo
+**Query Parameters:**
+- `user_id` (obrigatório)
+- `session_id` (opcional)
 
-### Logic Nodes
-- `condition`: Nós de condição (if/else)
+### DELETE /api/agent/memory
+Limpar memória do agente
 
-## Provedores de IA Suportados
+**Request:**
+```json
+{
+  "user_id": "user123",
+  "session_id": "session456" // opcional
+}
+```
 
-- **OpenAI**: GPT-4, GPT-3.5-turbo
-- **Google Gemini**: gemini-pro, gemini-1.5-pro
+### GET /api/agent/health
+Verificação de saúde da API
 
-- ** - teste 52** 
+## Funcionalidades do Agente
+
+O agente LangChain tem acesso às seguintes ferramentas:
+
+1. **Busca Web**: Pesquisar informações atualizadas na internet
+2. **Leitura de Arquivos**: Ler conteúdo de arquivos
+3. **Escrita de Arquivos**: Criar e editar arquivos
+4. **Listagem de Diretórios**: Explorar estrutura de pastas
+
+## Memória
+
+O sistema implementa dois tipos de memória:
+
+1. **Memória de Conversa**: Histórico de mensagens por sessão
+2. **Memória de Longo Prazo**: Informações importantes extraídas automaticamente
+
+A busca semântica permite recuperar informações relevantes baseadas no contexto da conversa.
+
+## Deploy
+
+O projeto está configurado para deploy automático no EC2. Após fazer commit das alterações, o deploy é executado automaticamente.
+
+## Contribuição
+
+1. Faça fork do projeto
+2. Crie uma branch para sua feature
+3. Commit suas alterações
+4. Push para a branch
+5. Abra um Pull Request
 
