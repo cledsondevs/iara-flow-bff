@@ -30,11 +30,16 @@ class MemoryService:
     def _create_tables(self):
         """Criar tabelas necessárias para memória"""
         try:
+            # Conectar sem registrar o tipo vector inicialmente
+            with psycopg2.connect(self.database_url) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+                    conn.commit()
+            
+            # Agora, conectar novamente e registrar o tipo vector
             with self._get_connection() as conn:
                 with conn.cursor() as cur:
                     # Tabela para conversas
-                    cur.execute("CREATE EXTENSION IF NOT EXISTS vector;");
-                    cur.execute("""
                         CREATE TABLE IF NOT EXISTS conversations (
                             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                             user_id VARCHAR(255) NOT NULL,
