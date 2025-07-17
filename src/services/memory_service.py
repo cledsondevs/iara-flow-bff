@@ -31,6 +31,7 @@ class MemoryService:
     def _get_connection(self):
         """Obter conexão com o banco de dados"""
         conn = psycopg2.connect(self.database_url, cursor_factory=RealDictCursor)
+        register_vector(conn)
         return conn
     
     def _create_tables(self):
