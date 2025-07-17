@@ -136,3 +136,20 @@ O projeto está configurado para deploy automático no EC2. Após fazer commit d
 4. Push para a branch
 5. Abra um Pull Request
 
+
+
+### Acesso ao Banco de Dados PostgreSQL
+
+**Usuário:** `postgres`
+**Senha:** `postgres`
+
+Para acessar as tabelas do banco de dados `iara_db` no EC2, você pode usar um cliente PostgreSQL (como `psql` ou DBeaver) e conectar-se ao IP `54.162.170.1` na porta `5432` com as credenciais acima. As tabelas relevantes são `conversations` (para histórico de chat) e `long_term_memory` (para memória de longo prazo).
+
+Exemplo de conexão via `psql` no terminal:
+
+```bash
+psql -h 54.162.170.1 -p 5432 -U postgres -d iara_db
+```
+
+Após conectar, você pode listar as tabelas com `\dt` e visualizar o conteúdo com `SELECT * FROM <nome_da_tabela>;`.
+
