@@ -142,10 +142,4 @@ vercel --prod
 
 - **OpenAI**: GPT-4, GPT-3.5-turbo
 - **Google Gemini**: gemini-pro, gemini-1.5-pro
-
-\nTestando deploy automático via webhook.
-\nMais um teste de deploy automático via webhook.
-\nTerceiro teste de deploy automático via webhook.
-\nQuarto teste de deploy automático via webhook.
-\nQuinto teste de deploy automático via webhook.
-\nSexto teste de deploy automático via webhook.
+- **Deploy no EC2** 
