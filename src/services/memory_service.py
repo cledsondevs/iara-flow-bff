@@ -43,9 +43,10 @@ class MemoryService:
                             message_embedding vector(1536),
                             response_embedding vector(1536),
                             metadata JSONB,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            INDEX (user_id, session_id, created_at)
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         );
+                        CREATE INDEX IF NOT EXISTS idx_conversations_user_session 
+                        ON conversations (user_id, session_id, created_at);
                     """)
                     
                     # Tabela para memória de longo prazo
@@ -59,9 +60,10 @@ class MemoryService:
                             importance_score FLOAT DEFAULT 0.0,
                             metadata JSONB,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            INDEX (user_id, memory_type, importance_score)
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         );
+                        CREATE INDEX IF NOT EXISTS idx_long_term_memory_user_type 
+                        ON long_term_memory (user_id, memory_type, importance_score);
                     """)
                     
                     conn.commit()
