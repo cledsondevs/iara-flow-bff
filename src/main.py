@@ -14,39 +14,41 @@ from src.routes.agent_routes import agent_bp
 from src.routes.review_agent_routes import review_agent_bp
 from src.services.memory_service import MemoryService
 
-app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
-
-# Inicializar MemoryService para garantir que as tabelas sejam criadas
-try:
-    memory_service = MemoryService()
-    print("MemoryService inicializado com sucesso")
-except Exception as e:
-    print(f"Erro ao inicializar MemoryService: {e}")
-
-# Configurar CORS
-CORS(app, origins="*")
-
-# Registrar blueprints
-app.register_blueprint(agent_bp, url_prefix="/api")
-app.register_blueprint(review_agent_bp)
-
-@app.route('/<path:path>')
-def serve(path):
-    static_folder_path = app.static_folder
-    if static_folder_path is None:
+def create_app():
+    app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
+    app.config['SECRET_KEY'] = 'asdf#FGSgvasgf'
+    
+    # Configurar CORS
+    CORS(app, origins="*")
+    
+    # Inicializar MemoryService para garantir que as tabelas sejam criadas
+    try:
+        memory_service = MemoryService()
+        print("MemoryService inicializado com sucesso")
+    except Exception as e:
+        print(f"Erro ao inicializar MemoryService: {e}")
+    
+    # Registrar blueprints
+    app.register_blueprint(agent_bp, url_prefix="/api")
+    app.register_blueprint(review_agent_bp)
+    
+    @app.route('/<path:path>')
+    def serve(path):
+        static_folder_path = app.static_folder
+        if static_folder_path is None:
             return "Static folder not configured", 404
-
-    if path != "" and os.path.exists(os.path.join(static_folder_path, path)):
-        return send_from_directory(static_folder_path, path)
-    else:
-        index_path = os.path.join(static_folder_path, 'index.html')
-        if os.path.exists(index_path):
-            return send_from_directory(static_folder_path, 'index.html')
+        if path != "" and os.path.exists(os.path.join(static_folder_path, path)):
+            return send_from_directory(static_folder_path, path)
         else:
-            return "index.html not found", 404
+            index_path = os.path.join(static_folder_path, 'index.html')
+            if os.path.exists(index_path):
+                return send_from_directory(static_folder_path, 'index.html')
+            else:
+                return "index.html not found", 404
+    
+    return app
 
+app = create_app()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
-
+    app.run(host='0.0.0.0', port=5000, debug=False)
