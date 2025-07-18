@@ -15,13 +15,19 @@ from contextlib import contextmanager
 
 class MemoryService:
     def __init__(self):
-        # Configuração do Chroma
-        self.chroma_client = chromadb.PersistentClient(
-            path="./chroma_db",  # Diretório local para persistir os dados
-            settings=Settings(
-                anonymized_telemetry=False,
-                allow_reset=True
-            )
+        # Configuração do PostgreSQL (para dados estruturados e como backend do Chroma)
+        self.db_config = {
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'port': os.getenv('DB_PORT', '5432'),
+            'database': os.getenv('DB_NAME', 'admin'), # Alterado para 'admin'
+            'user': os.getenv('DB_USER', 'admin'),     # Alterado para 'admin'
+            'password': os.getenv('DB_PASSWORD', 'admin') # Alterado para 'admin'
+        }
+
+        # Configuração do Chroma para usar PostgreSQL
+        self.chroma_client = chromadb.HttpClient(
+            host=self.db_config['host'],
+            port=int(self.db_config['port'])
         )
         
         # Coleções do Chroma
@@ -30,18 +36,9 @@ class MemoryService:
         
         # Configuração do OpenAI Embeddings
         self.embeddings = OpenAIEmbeddings(
-            openai_api_key=os.getenv('OPENAI_API_KEY'),
-            openai_api_base=os.getenv('OPENAI_API_BASE')
+            openai_api_key=os.getenv("OPENAI_API_KEY"),
+            openai_api_base=os.getenv("OPENAI_API_BASE")
         )
-        
-        # Configuração do PostgreSQL (apenas para dados estruturados)
-        self.db_config = {
-            'host': os.getenv('DB_HOST', 'localhost'),
-            'port': os.getenv('DB_PORT', '5432'),
-            'database': os.getenv('DB_NAME', 'iara_flow'),
-            'user': os.getenv('DB_USER', 'postgres'),
-            'password': os.getenv('DB_PASSWORD', 'password')
-        }
         
         # Inicializar tabelas do PostgreSQL
         self._init_postgres_tables()
@@ -49,7 +46,7 @@ class MemoryService:
     def _get_or_create_collection(self, name: str):
         """Obter ou criar uma coleção no Chroma"""
         try:
-            return self.chroma_client.get_collection(name=name)
+            return self.chroma_client.get_or_create_collection(name=name)
         except Exception:
             return self.chroma_client.create_collection(
                 name=name,
@@ -191,11 +188,11 @@ class MemoryService:
             
             # Processar resultados
             conversations = []
-            if results['documents'] and results['documents'][0]:
+            if results["documents"] and results["documents"][0]:
                 for i, (doc, metadata, distance) in enumerate(zip(
-                    results['documents'][0],
-                    results['metadatas'][0],
-                    results['distances'][0]
+                    results["documents"][0],
+                    results["metadatas"][0],
+                    results["distances"][0]
                 )):
                     if len(conversations) >= limit:
                         break
@@ -306,11 +303,11 @@ class MemoryService:
             
             # Processar resultados
             memories = []
-            if results['documents'] and results['documents'][0]:
+            if results["documents"] and results["documents"][0]:
                 for i, (doc, metadata, distance) in enumerate(zip(
-                    results['documents'][0],
-                    results['metadatas'][0],
-                    results['distances'][0]
+                    results["documents"][0],
+                    results["metadatas"][0],
+                    results["distances"][0]
                 )):
                     if len(memories) >= limit:
                         break
@@ -356,14 +353,14 @@ class MemoryService:
             short_term_results = self.short_term_collection.get(
                 where={"user_id": user_id}
             )
-            if short_term_results['ids']:
-                self.short_term_collection.delete(ids=short_term_results['ids'])
+            if short_term_results["ids"]:
+                self.short_term_collection.delete(ids=short_term_results["ids"])
             
             long_term_results = self.long_term_collection.get(
                 where={"user_id": user_id}
             )
-            if long_term_results['ids']:
-                self.long_term_collection.delete(ids=long_term_results['ids'])
+            if long_term_results["ids"]:
+                self.long_term_collection.delete(ids=long_term_results["ids"])
             
             # Limpar do PostgreSQL
             with self._get_connection() as conn:
@@ -388,12 +385,12 @@ class MemoryService:
             short_term_results = self.short_term_collection.get(
                 where={"user_id": user_id}
             )
-            stats["short_term_conversations"] = len(short_term_results['ids']) if short_term_results['ids'] else 0
+            stats["short_term_conversations"] = len(short_term_results["ids"]) if short_term_results["ids"] else 0
             
             long_term_results = self.long_term_collection.get(
                 where={"user_id": user_id}
             )
-            stats["long_term_memories"] = len(long_term_results['ids']) if long_term_results['ids'] else 0
+            stats["long_term_memories"] = len(long_term_results["ids"]) if long_term_results["ids"] else 0
             
             # Contar no PostgreSQL
             with self._get_connection() as conn:
@@ -409,4 +406,6 @@ class MemoryService:
 
 # Instância global do serviço
 memory_service = MemoryService()
+
+
 
