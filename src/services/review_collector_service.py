@@ -177,6 +177,37 @@ class ReviewCollectorService:
         except Exception as e:
             raise Exception(f"Erro ao obter apps para coleta: {str(e)}")
     
+    def get_app_config_by_package_name(self, package_name: str) -> Optional[AppConfig]:
+        """Obter configuração de um aplicativo pelo package_name"""
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT * FROM app_configs 
+                        WHERE package_name = %s
+                    """, (package_name,))
+                    
+                    row = cur.fetchone()
+                    
+                    if row:
+                        stores = [StoreType(store) for store in row['stores']]
+                        config = AppConfig(
+                            id=str(row['id']),
+                            package_name=row['package_name'],
+                            app_name=row['app_name'] ,
+                            stores=stores,
+                            collection_frequency=row['collection_frequency'],
+                            is_active=row['is_active'],
+                            last_collection=row['last_collection'],
+                            metadata=row['metadata'],
+                            created_at=row['created_at']
+                        )
+                        return config
+                    return None
+                    
+        except Exception as e:
+            raise Exception(f"Erro ao obter configuração do app: {str(e)}")
+
     def collect_reviews(self, package_name: str, store: StoreType, limit: int = 100) -> List[Review]:
         """Coletar reviews de um aplicativo específico"""
         try:
@@ -334,4 +365,6 @@ class ReviewCollectorService:
             
         except Exception:
             return None
+
+
 

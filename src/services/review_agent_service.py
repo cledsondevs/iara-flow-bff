@@ -205,13 +205,7 @@ class ReviewAgentService:
         """Coletar reviews para um aplicativo específico"""
         try:
             # Obter configuração do app
-            apps = self.collector.get_apps_for_collection()
-            target_app = None
-            
-            for app in apps:
-                if app.package_name == package_name:
-                    target_app = app
-                    break
+            target_app = self.collector.get_app_config_by_package_name(package_name)
             
             if not target_app:
                 raise Exception(f"App {package_name} não encontrado nas configurações")
