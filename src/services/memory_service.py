@@ -15,19 +15,13 @@ from contextlib import contextmanager
 
 class MemoryService:
     def __init__(self):
-        # Configuração do PostgreSQL (para dados estruturados e como backend do Chroma)
-        self.db_config = {
-            'host': os.getenv('DB_HOST', 'localhost'),
-            'port': os.getenv('DB_PORT', '5432'),
-            'database': os.getenv('DB_NAME', 'admin'), # Alterado para 'admin'
-            'user': os.getenv('DB_USER', 'admin'),     # Alterado para 'admin'
-            'password': os.getenv('DB_PASSWORD', 'admin') # Alterado para 'admin'
-        }
-
-        # Configuração do Chroma para usar PostgreSQL
-        self.chroma_client = chromadb.HttpClient(
-            host=self.db_config['host'],
-            port=int(self.db_config['port'])
+        # Configuração do Chroma
+        self.chroma_client = chromadb.PersistentClient(
+            path="./chroma_db",  # Diretório local para persistir os dados
+            settings=Settings(
+                anonymized_telemetry=False,
+                allow_reset=True
+            )
         )
         
         # Coleções do Chroma
@@ -40,13 +34,22 @@ class MemoryService:
             openai_api_base=os.getenv("OPENAI_API_BASE")
         )
         
+        # Configuração do PostgreSQL (apenas para dados estruturados)
+        self.db_config = {
+            "host": os.getenv("DB_HOST", "localhost"),
+            "port": os.getenv("DB_PORT", "5432"),
+            "database": os.getenv("DB_NAME", "iara_flow"),
+            "user": os.getenv("DB_USER", "postgres"),
+            "password": os.getenv("DB_PASSWORD", "password")
+        }
+        
         # Inicializar tabelas do PostgreSQL
         self._init_postgres_tables()
     
     def _get_or_create_collection(self, name: str):
         """Obter ou criar uma coleção no Chroma"""
         try:
-            return self.chroma_client.get_or_create_collection(name=name)
+            return self.chroma_client.get_collection(name=name)
         except Exception:
             return self.chroma_client.create_collection(
                 name=name,
@@ -214,8 +217,8 @@ class MemoryService:
         """Avaliar se a conversa deve ser salva na memória de longo prazo"""
         try:
             # Critérios para memória de longo prazo
-            keywords = ['importante', 'lembrar', 'preferência', 'configuração', 'projeto', 
-                       'salvar', 'guardar', 'memorizar', 'não esquecer']
+            keywords = ["importante", "lembrar", "preferência", "configuração", "projeto", 
+                       "salvar", "guardar", "memorizar", "não esquecer"]
             
             combined_text = f"{message} {response}".lower()
             importance_score = sum(1 for keyword in keywords if keyword in combined_text)
@@ -224,7 +227,7 @@ class MemoryService:
             if len(response) > 200:  # Respostas longas
                 importance_score += 1
             
-            if any(word in combined_text for word in ['como', 'tutorial', 'passo a passo']):
+            if any(word in combined_text for word in ["como", "tutorial", "passo a passo"]):
                 importance_score += 1
             
             if importance_score > 0:
