@@ -333,17 +333,26 @@ Retorne um JSON com grupos de tópicos similares:
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT 
-                            jsonb_array_elements_text(topics) as topic,
-                            sentiment,
-                            COUNT(*) as frequency,
-                            array_agg(DISTINCT jsonb_array_elements_text(keywords)) as keywords
-                        FROM reviews 
-                        WHERE package_name = %s 
-                        AND created_at >= NOW() - INTERVAL '7 days'
-                        AND topics IS NOT NULL
-                        GROUP BY topic, sentiment
-                    """, (package_name,))
-                    
+                            t.topic,
+                            t.sentiment,
+                            t.frequency,
+                            array_agg(DISTINCT kw.keyword) as keywords
+                        FROM (
+                            SELECT 
+                                jsonb_array_elements_text(topics) as topic,
+                                sentiment,
+                                COUNT(*) as frequency
+                            FROM reviews 
+                            WHERE package_name = %s 
+                            AND created_at >= NOW() - INTERVAL '7 days'
+                            AND topics IS NOT NULL
+                            GROUP BY topic, sentiment
+                        ) as t
+                        LEFT JOIN reviews r ON r.package_name = %s AND r.sentiment = t.sentiment
+                        LEFT JOIN LATERAL jsonb_array_elements_text(r.keywords) as kw(keyword) ON TRUE
+                        WHERE r.created_at >= NOW() - INTERVAL '7 days'
+                        GROUP BY t.topic, t.sentiment, t.frequency
+                    """, (package_name, package_name))
                     patterns = cur.fetchall()
                     
                     for pattern in patterns:
