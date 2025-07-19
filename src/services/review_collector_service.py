@@ -7,102 +7,97 @@ import uuid
 import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import sqlite3
 
 from src.models.review_models import Review, StoreType, AppConfig
 
 class ReviewCollectorService:
     def __init__(self):
-        self.database_url = os.getenv("DATABASE_URL")
-        if not self.database_url:
-            raise ValueError("DATABASE_URL não configurada nas variáveis de ambiente.")
-        
+        self.database_path = os.getenv("DB_PATH", "./iara_flow.db")
         self.api_base_url = "https://bff-analyse.vercel.app/api/apps"
         self._create_tables()
     
     def _get_connection(self):
-        """Obter conexão com o banco de dados"""
-        conn = psycopg2.connect(self.database_url, cursor_factory=RealDictCursor)
+        """Obter conexão com o banco de dados SQLite"""
+        conn = sqlite3.connect(self.database_path)
+        conn.row_factory = sqlite3.Row
         return conn
     
     def _create_tables(self):
         """Criar tabelas necessárias para reviews e configurações"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    # Habilitar extensão uuid-ossp se não existir
-                    cur.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
-                    
-                    # Tabela para configurações de aplicativos
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS app_configs (
-                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                            package_name VARCHAR(255) NOT NULL UNIQUE,
-                            app_name VARCHAR(255) NOT NULL,
-                            stores JSONB NOT NULL DEFAULT '["google_play"]',
-                            collection_frequency INTEGER DEFAULT 6,
-                            is_active BOOLEAN DEFAULT true,
-                            last_collection TIMESTAMP WITH TIME ZONE,
-                            metadata JSONB,
-                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                        );
-                    """)
-                    
-                    # Tabela para reviews coletados
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS reviews (
-                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                            package_name VARCHAR(255) NOT NULL,
-                            store VARCHAR(50) NOT NULL,
-                            review_id VARCHAR(255) NOT NULL,
-                            user_name VARCHAR(255),
-                            rating INTEGER,
-                            content TEXT NOT NULL,
-                            review_date TIMESTAMP WITH TIME ZONE,
-                            sentiment VARCHAR(20),
-                            topics JSONB DEFAULT '[]',
-                            keywords JSONB DEFAULT '[]',
-                            metadata JSONB,
-                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                            UNIQUE(package_name, store, review_id)
-                        );
-                    """)
-                    
-                    # Tabela para itens de backlog
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS backlog_items (
-                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                            title VARCHAR(500) NOT NULL,
-                            description TEXT,
-                            priority INTEGER DEFAULT 1,
-                            category VARCHAR(100),
-                            source_reviews JSONB DEFAULT '[]',
-                            sentiment_score REAL DEFAULT 0.0,
-                            frequency INTEGER DEFAULT 1,
-                            status VARCHAR(50) DEFAULT 'pending',
-                            metadata JSONB,
-                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                        );
-                    """)
-                    
-                    # Tabela para padrões de sentimento
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS sentiment_patterns (
-                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                            package_name VARCHAR(255) NOT NULL,
-                            topic VARCHAR(255) NOT NULL,
-                            sentiment_trend JSONB DEFAULT '[]',
-                            keywords JSONB DEFAULT '[]',
-                            frequency INTEGER DEFAULT 0,
-                            last_seen TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                            metadata JSONB,
-                            UNIQUE(package_name, topic)
-                        );
-                    """)
-                    
-                    conn.commit()
+                cur = conn.cursor()
+                
+                # Tabela para configurações de aplicativos
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS app_configs (
+                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        package_name TEXT NOT NULL UNIQUE,
+                        app_name TEXT NOT NULL,
+                        stores TEXT NOT NULL DEFAULT '["google_play"]',
+                        collection_frequency INTEGER DEFAULT 6,
+                        is_active BOOLEAN DEFAULT 1,
+                        last_collection TIMESTAMP,
+                        metadata TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Tabela para reviews coletados
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS reviews (
+                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        package_name TEXT NOT NULL,
+                        store TEXT NOT NULL,
+                        review_id TEXT NOT NULL,
+                        user_name TEXT,
+                        rating INTEGER,
+                        content TEXT NOT NULL,
+                        review_date TIMESTAMP,
+                        sentiment TEXT,
+                        topics TEXT DEFAULT '[]',
+                        keywords TEXT DEFAULT '[]',
+                        metadata TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(package_name, store, review_id)
+                    )
+                """)
+                
+                # Tabela para itens de backlog (se não existir)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS backlog_items (
+                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        title TEXT NOT NULL,
+                        description TEXT,
+                        priority INTEGER DEFAULT 1,
+                        category TEXT,
+                        source_reviews TEXT DEFAULT '[]',
+                        sentiment_score REAL DEFAULT 0.0,
+                        frequency INTEGER DEFAULT 1,
+                        status TEXT DEFAULT 'pending',
+                        metadata TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Tabela para padrões de sentimento
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS sentiment_patterns (
+                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        package_name TEXT NOT NULL,
+                        topic TEXT NOT NULL,
+                        sentiment_trend TEXT DEFAULT '[]',
+                        keywords TEXT DEFAULT '[]',
+                        frequency INTEGER DEFAULT 0,
+                        last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        metadata TEXT,
+                        UNIQUE(package_name, topic)
+                    )
+                """)
+                
+                conn.commit()
                     
         except Exception as e:
             raise Exception(f"Erro ao criar tabelas: {str(e)}")
@@ -118,23 +113,20 @@ class ReviewCollectorService:
             stores_json = [store.value for store in stores]
             
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        INSERT INTO app_configs 
-                        (package_name, app_name, stores, collection_frequency)
-                        VALUES (%s, %s, %s, %s)
-                        ON CONFLICT (package_name) 
-                        DO UPDATE SET 
-                            app_name = EXCLUDED.app_name,
-                            stores = EXCLUDED.stores,
-                            collection_frequency = EXCLUDED.collection_frequency,
-                            is_active = true
-                        RETURNING id
-                    """, (package_name, app_name, json.dumps(stores_json), collection_frequency))
-                    
-                    result = cur.fetchone()
-                    conn.commit()
-                    return str(result['id'])
+                cur = conn.cursor()
+                
+                cur.execute("""
+                    INSERT OR REPLACE INTO app_configs 
+                    (package_name, app_name, stores, collection_frequency, is_active)
+                    VALUES (?, ?, ?, ?, 1)
+                """, (package_name, app_name, json.dumps(stores_json), collection_frequency))
+                
+                # Obter o ID do registro inserido/atualizado
+                cur.execute("SELECT id FROM app_configs WHERE package_name = ?", (package_name,))
+                result = cur.fetchone()
+                conn.commit()
+                
+                return str(result['id']) if result else str(cur.lastrowid)
                     
         except Exception as e:
             raise Exception(f"Erro ao adicionar configuração do app: {str(e)}")
@@ -143,36 +135,42 @@ class ReviewCollectorService:
         """Obter aplicativos que precisam de coleta de reviews"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    # Buscar apps ativos que precisam de coleta
-                    cur.execute("""
-                        SELECT * FROM app_configs 
-                        WHERE is_active = true 
-                        AND (
-                            last_collection IS NULL 
-                            OR last_collection < NOW() - INTERVAL '%s hours'
-                        )
-                    """, (6,))  # Default de 6 horas
+                cur = conn.cursor()
+                
+                # Buscar apps ativos que precisam de coleta
+                cur.execute("""
+                    SELECT * FROM app_configs 
+                    WHERE is_active = 1 
+                    AND (
+                        last_collection IS NULL 
+                        OR last_collection < datetime('now', '-6 hours')
+                    )
+                """)
+                
+                rows = cur.fetchall()
+                
+                configs = []
+                for row in rows:
+                    try:
+                        stores_data = json.loads(row['stores']) if row['stores'] else ['google_play']
+                        stores = [StoreType(store) for store in stores_data]
+                    except (json.JSONDecodeError, ValueError):
+                        stores = [StoreType.GOOGLE_PLAY]
                     
-                    rows = cur.fetchall()
-                    
-                    configs = []
-                    for row in rows:
-                        stores = [StoreType(store) for store in row['stores']]
-                        config = AppConfig(
-                            id=str(row['id']),
-                            package_name=row['package_name'],
-                            app_name=row['app_name'],
-                            stores=stores,
-                            collection_frequency=row['collection_frequency'],
-                            is_active=row['is_active'],
-                            last_collection=row['last_collection'],
-                            metadata=row['metadata'],
-                            created_at=row['created_at']
-                        )
-                        configs.append(config)
-                    
-                    return configs
+                    config = AppConfig(
+                        id=str(row['id']),
+                        package_name=row['package_name'],
+                        app_name=row['app_name'],
+                        stores=stores,
+                        collection_frequency=row['collection_frequency'],
+                        is_active=bool(row['is_active']),
+                        last_collection=datetime.fromisoformat(row['last_collection']) if row['last_collection'] else None,
+                        metadata=json.loads(row['metadata']) if row['metadata'] else None,
+                        created_at=datetime.fromisoformat(row['created_at']) if row['created_at'] else None
+                    )
+                    configs.append(config)
+                
+                return configs
                     
         except Exception as e:
             raise Exception(f"Erro ao obter apps para coleta: {str(e)}")
@@ -181,29 +179,35 @@ class ReviewCollectorService:
         """Obter configuração de um aplicativo pelo package_name"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT * FROM app_configs 
-                        WHERE package_name = %s
-                    """, (package_name,))
+                cur = conn.cursor()
+                
+                cur.execute("""
+                    SELECT * FROM app_configs 
+                    WHERE package_name = ?
+                """, (package_name,))
+                
+                row = cur.fetchone()
+                
+                if row:
+                    try:
+                        stores_data = json.loads(row['stores']) if row['stores'] else ['google_play']
+                        stores = [StoreType(store) for store in stores_data]
+                    except (json.JSONDecodeError, ValueError):
+                        stores = [StoreType.GOOGLE_PLAY]
                     
-                    row = cur.fetchone()
-                    
-                    if row:
-                        stores = [StoreType(store) for store in row['stores']]
-                        config = AppConfig(
-                            id=str(row['id']),
-                            package_name=row['package_name'],
-                            app_name=row['app_name'] ,
-                            stores=stores,
-                            collection_frequency=row['collection_frequency'],
-                            is_active=row['is_active'],
-                            last_collection=row['last_collection'],
-                            metadata=row['metadata'],
-                            created_at=row['created_at']
-                        )
-                        return config
-                    return None
+                    config = AppConfig(
+                        id=str(row['id']),
+                        package_name=row['package_name'],
+                        app_name=row['app_name'],
+                        stores=stores,
+                        collection_frequency=row['collection_frequency'],
+                        is_active=bool(row['is_active']),
+                        last_collection=datetime.fromisoformat(row['last_collection']) if row['last_collection'] else None,
+                        metadata=json.loads(row['metadata']) if row['metadata'] else None,
+                        created_at=datetime.fromisoformat(row['created_at']) if row['created_at'] else None
+                    )
+                    return config
+                return None
                     
         except Exception as e:
             raise Exception(f"Erro ao obter configuração do app: {str(e)}")
@@ -249,37 +253,37 @@ class ReviewCollectorService:
             saved_count = 0
             
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    for review in reviews:
-                        try:
-                            cur.execute("""
-                                INSERT INTO reviews 
-                                (package_name, store, review_id, user_name, rating, 
-                                 content, review_date, sentiment, topics, keywords, metadata)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                                ON CONFLICT (package_name, store, review_id) DO NOTHING
-                            """, (
-                                review.package_name,
-                                review.store.value,
-                                review.review_id,
-                                review.user_name,
-                                review.rating,
-                                review.content,
-                                review.date,
-                                review.sentiment.value if review.sentiment else None,
-                                json.dumps(review.topics),
-                                json.dumps(review.keywords),
-                                json.dumps(review.metadata)
-                            ))
+                cur = conn.cursor()
+                
+                for review in reviews:
+                    try:
+                        cur.execute("""
+                            INSERT OR IGNORE INTO reviews 
+                            (package_name, store, review_id, user_name, rating, 
+                             content, review_date, sentiment, topics, keywords, metadata)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            review.package_name,
+                            review.store.value,
+                            review.review_id,
+                            review.user_name,
+                            review.rating,
+                            review.content,
+                            review.date.isoformat() if review.date else None,
+                            review.sentiment.value if review.sentiment else None,
+                            json.dumps(review.topics),
+                            json.dumps(review.keywords),
+                            json.dumps(review.metadata)
+                        ))
+                        
+                        if cur.rowcount > 0:
+                            saved_count += 1
                             
-                            if cur.rowcount > 0:
-                                saved_count += 1
-                                
-                        except Exception as e:
-                            print(f"Erro ao salvar review {review.review_id}: {e}")
-                            continue
-                    
-                    conn.commit()
+                    except Exception as e:
+                        print(f"Erro ao salvar review {review.review_id}: {e}")
+                        continue
+                
+                conn.commit()
             
             return saved_count
             
@@ -290,13 +294,14 @@ class ReviewCollectorService:
         """Atualizar timestamp da última coleta"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        UPDATE app_configs 
-                        SET last_collection = CURRENT_TIMESTAMP 
-                        WHERE package_name = %s
-                    """, (package_name,))
-                    conn.commit()
+                cur = conn.cursor()
+                
+                cur.execute("""
+                    UPDATE app_configs 
+                    SET last_collection = CURRENT_TIMESTAMP 
+                    WHERE package_name = ?
+                """, (package_name,))
+                conn.commit()
                     
         except Exception as e:
             raise Exception(f"Erro ao atualizar última coleta: {str(e)}")
@@ -365,6 +370,4 @@ class ReviewCollectorService:
             
         except Exception:
             return None
-
-
 

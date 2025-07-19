@@ -1,13 +1,15 @@
 from functools import wraps
 from flask import request, jsonify
-import psycopg2
+import sqlite3
 import os
 
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://admin:admin@localhost:5432/admin')
+DATABASE_PATH = os.getenv('DB_PATH', './iara_flow.db')
 
 def get_db_connection():
-    """Estabelece conexão com o banco de dados PostgreSQL"""
-    return psycopg2.connect(DATABASE_URL)
+    """Estabelece conexão com o banco de dados SQLite"""
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row  # Para retornar resultados como dicionários
+    return conn
 
 def require_auth(f):
     """Decorator para proteger rotas que requerem autenticação"""
@@ -30,7 +32,7 @@ def require_auth(f):
                 SELECT s.user_id, u.username, u.email 
                 FROM sessions s 
                 JOIN users u ON s.user_id = u.id 
-                WHERE s.session_token = %s AND s.expires_at > NOW()
+                WHERE s.session_token = ? AND s.expires_at > datetime('now')
                 """,
                 (session_token,)
             )
@@ -59,3 +61,4 @@ def require_auth(f):
 def get_current_user():
     """Função helper para obter o usuário atual da requisição"""
     return getattr(request, 'current_user', None)
+
