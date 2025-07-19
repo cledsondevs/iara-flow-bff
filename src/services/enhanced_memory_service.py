@@ -7,8 +7,7 @@ import json
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import sqlite3
 import numpy as np
 
 from langchain_openai import OpenAIEmbeddings
@@ -23,72 +22,73 @@ class EnhancedMemoryService(MemoryService):
         """Criar tabelas adicionais para memória de reviews"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    # Tabela para padrões de sentimento aprendidos
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS review_sentiment_patterns (
-                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                            package_name VARCHAR(255) NOT NULL,
-                            pattern_type VARCHAR(100) NOT NULL,
-                            pattern_data JSONB NOT NULL,
-                            confidence_score REAL DEFAULT 0.0,
-                            frequency INTEGER DEFAULT 1,
-                            last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                            metadata JSONB,
-                            UNIQUE(package_name, pattern_type, (pattern_data->>'key'))
-                        );
-                    """)
-                    
-                    # Tabela para correlações problema-solução
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS problem_solution_correlations (
-                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                            problem_pattern VARCHAR(500) NOT NULL,
-                            solution_implemented VARCHAR(500),
-                            backlog_item_id UUID,
-                            sentiment_before JSONB,
-                            sentiment_after JSONB,
-                            effectiveness_score REAL DEFAULT 0.0,
-                            time_to_impact_days INTEGER,
-                            metadata JSONB,
-                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                        );
-                    """)
-                    
-                    # Tabela para evolução de sentimento
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS sentiment_evolution (
-                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                            package_name VARCHAR(255) NOT NULL,
-                            topic VARCHAR(255) NOT NULL,
-                            time_period DATE NOT NULL,
-                            sentiment_distribution JSONB NOT NULL,
-                            key_metrics JSONB,
-                            trend_direction VARCHAR(20),
-                            metadata JSONB,
-                            UNIQUE(package_name, topic, time_period)
-                        );
-                    """)
-                    
-                    # Tabela para otimização de backlog
-                    cur.execute("""
-                        CREATE TABLE IF NOT EXISTS backlog_optimization_patterns (
-                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                            pattern_name VARCHAR(255) NOT NULL,
-                            pattern_description TEXT,
-                            success_indicators JSONB,
-                            failure_indicators JSONB,
-                            optimization_rules JSONB,
-                            confidence_score REAL DEFAULT 0.0,
-                            usage_count INTEGER DEFAULT 0,
-                            last_used TIMESTAMP WITH TIME ZONE,
-                            metadata JSONB,
-                            UNIQUE(pattern_name)
-                        );
-                    """)
-                    
-                    conn.commit()
+                cur = conn.cursor()
+                
+                # Tabela para padrões de sentimento aprendidos
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS review_sentiment_patterns (
+                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        package_name TEXT NOT NULL,
+                        pattern_type TEXT NOT NULL,
+                        pattern_data TEXT NOT NULL,
+                        confidence_score REAL DEFAULT 0.0,
+                        frequency INTEGER DEFAULT 1,
+                        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        metadata TEXT,
+                        UNIQUE(package_name, pattern_type, json_extract(pattern_data, '$.key'))
+                    )
+                """)
+                
+                # Tabela para correlações problema-solução
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS problem_solution_correlations (
+                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        problem_pattern TEXT NOT NULL,
+                        solution_implemented TEXT,
+                        backlog_item_id TEXT,
+                        sentiment_before TEXT,
+                        sentiment_after TEXT,
+                        effectiveness_score REAL DEFAULT 0.0,
+                        time_to_impact_days INTEGER,
+                        metadata TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Tabela para evolução de sentimento
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS sentiment_evolution (
+                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        package_name TEXT NOT NULL,
+                        topic TEXT NOT NULL,
+                        time_period DATE NOT NULL,
+                        sentiment_distribution TEXT NOT NULL,
+                        key_metrics TEXT,
+                        trend_direction TEXT,
+                        metadata TEXT,
+                        UNIQUE(package_name, topic, time_period)
+                    )
+                """)
+                
+                # Tabela para otimização de backlog
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS backlog_optimization_patterns (
+                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        pattern_name TEXT NOT NULL UNIQUE,
+                        pattern_description TEXT,
+                        success_indicators TEXT,
+                        failure_indicators TEXT,
+                        optimization_rules TEXT,
+                        confidence_score REAL DEFAULT 0.0,
+                        usage_count INTEGER DEFAULT 0,
+                        last_used TIMESTAMP,
+                        metadata TEXT
+                    )
+                """)
+                
+                conn.commit()
+                cur.close()
                     
         except Exception as e:
             print(f"Erro ao criar tabelas aprimoradas: {e}")
@@ -104,18 +104,16 @@ class EnhancedMemoryService(MemoryService):
                     pattern_data['key'] = pattern_key
                     
                     cur.execute("""
-                        INSERT INTO review_sentiment_patterns 
-                        (package_name, pattern_type, pattern_data, confidence_score, frequency)
-                        VALUES (%s, %s, %s, %s, 1)
-                        ON CONFLICT (package_name, pattern_type, (pattern_data->>'key'))
-                        DO UPDATE SET
-                            frequency = review_sentiment_patterns.frequency + 1,
-                            confidence_score = (review_sentiment_patterns.confidence_score + %s) / 2,
-                            last_updated = CURRENT_TIMESTAMP,
-                            pattern_data = %s
+                        INSERT OR REPLACE INTO review_sentiment_patterns 
+                        (package_name, pattern_type, pattern_data, confidence_score, frequency, last_updated)
+                        VALUES (?, ?, ?, ?, 
+                                COALESCE((SELECT frequency FROM review_sentiment_patterns 
+                                         WHERE package_name = ? AND pattern_type = ? 
+                                         AND json_extract(pattern_data, '$.key') = ?), 0) + 1,
+                                CURRENT_TIMESTAMP)
                     """, (
                         package_name, pattern_type, json.dumps(pattern_data),
-                        confidence, confidence, json.dumps(pattern_data)
+                        confidence, package_name, pattern_type, pattern_key
                     ))
                     
                     conn.commit()
@@ -132,23 +130,23 @@ class EnhancedMemoryService(MemoryService):
                     if pattern_type:
                         cur.execute("""
                             SELECT * FROM review_sentiment_patterns 
-                            WHERE package_name = %s AND pattern_type = %s
+                            WHERE package_name = ? AND pattern_type = ?
                             ORDER BY confidence_score DESC, frequency DESC
                         """, (package_name, pattern_type))
                     else:
                         cur.execute("""
                             SELECT * FROM review_sentiment_patterns 
-                            WHERE package_name = %s
+                            WHERE package_name = ?
                             ORDER BY confidence_score DESC, frequency DESC
                         """, (package_name,))
                     
                     patterns = []
                     for row in cur.fetchall():
                         patterns.append({
-                            'id': str(row['id']),
+                            'id': row['id'],
                             'package_name': row['package_name'],
                             'pattern_type': row['pattern_type'],
-                            'pattern_data': row['pattern_data'],
+                            'pattern_data': json.loads(row['pattern_data']) if row['pattern_data'] else {},
                             'confidence_score': row['confidence_score'],
                             'frequency': row['frequency'],
                             'last_updated': row['last_updated']
@@ -191,15 +189,10 @@ class EnhancedMemoryService(MemoryService):
             with self._get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        INSERT INTO sentiment_evolution 
+                        INSERT OR REPLACE INTO sentiment_evolution 
                         (package_name, topic, time_period, sentiment_distribution, 
                          key_metrics, trend_direction)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (package_name, topic, time_period)
-                        DO UPDATE SET
-                            sentiment_distribution = EXCLUDED.sentiment_distribution,
-                            key_metrics = EXCLUDED.key_metrics,
-                            trend_direction = EXCLUDED.trend_direction
+                        VALUES (?, ?, ?, ?, ?, ?)
                     """, (
                         package_name, topic, period_date,
                         json.dumps(sentiment_distribution),
@@ -221,7 +214,7 @@ class EnhancedMemoryService(MemoryService):
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT key_metrics FROM sentiment_evolution 
-                        WHERE package_name = %s AND topic = %s
+                        WHERE package_name = ? AND topic = ?
                         ORDER BY time_period DESC
                         LIMIT 1
                     """, (package_name, topic))
@@ -230,7 +223,7 @@ class EnhancedMemoryService(MemoryService):
                     if not result:
                         return 'new'
                     
-                    previous_metrics = result['key_metrics']
+                    previous_metrics = json.loads(result['key_metrics'])
                     prev_negative = previous_metrics.get('negative_ratio', 0)
                     prev_positive = previous_metrics.get('positive_ratio', 0)
                     
@@ -273,7 +266,7 @@ class EnhancedMemoryService(MemoryService):
                         (problem_pattern, solution_implemented, backlog_item_id,
                          sentiment_before, sentiment_after, effectiveness_score,
                          time_to_impact_days)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
                     """, (
                         problem_pattern, solution, backlog_item_id,
                         json.dumps(sentiment_before) if sentiment_before else None,
@@ -298,7 +291,7 @@ class EnhancedMemoryService(MemoryService):
                             time_to_impact_days,
                             COUNT(*) as frequency
                         FROM problem_solution_correlations 
-                        WHERE LOWER(problem_pattern) LIKE LOWER(%s)
+                        WHERE LOWER(problem_pattern) LIKE LOWER(?)
                         AND effectiveness_score > 0.1
                         GROUP BY solution_implemented, effectiveness_score, time_to_impact_days
                         ORDER BY effectiveness_score DESC, frequency DESC
@@ -329,25 +322,21 @@ class EnhancedMemoryService(MemoryService):
             with self._get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
-                        INSERT INTO backlog_optimization_patterns 
+                        INSERT OR REPLACE INTO backlog_optimization_patterns 
                         (pattern_name, pattern_description, success_indicators,
-                         failure_indicators, optimization_rules, confidence_score)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (pattern_name)
-                        DO UPDATE SET
-                            pattern_description = EXCLUDED.pattern_description,
-                            success_indicators = EXCLUDED.success_indicators,
-                            failure_indicators = EXCLUDED.failure_indicators,
-                            optimization_rules = EXCLUDED.optimization_rules,
-                            confidence_score = (backlog_optimization_patterns.confidence_score + EXCLUDED.confidence_score) / 2,
-                            usage_count = backlog_optimization_patterns.usage_count + 1,
-                            last_used = CURRENT_TIMESTAMP
+                         failure_indicators, optimization_rules, confidence_score,
+                         usage_count, last_used)
+                        VALUES (?, ?, ?, ?, ?, ?, 
+                                COALESCE((SELECT usage_count FROM backlog_optimization_patterns 
+                                         WHERE pattern_name = ?), 0) + 1,
+                                CURRENT_TIMESTAMP)
                     """, (
                         pattern_name, description,
                         json.dumps(success_indicators),
                         json.dumps(failure_indicators),
                         json.dumps(optimization_rules),
-                        0.5  # Confiança inicial
+                        0.5,  # Confiança inicial
+                        pattern_name
                     ))
                     
                     conn.commit()
@@ -371,7 +360,7 @@ class EnhancedMemoryService(MemoryService):
                     
                     for pattern in patterns:
                         # Analisar se o padrão se aplica ao backlog atual
-                        rules = pattern['optimization_rules']
+                        rules = json.loads(pattern['optimization_rules']) if pattern['optimization_rules'] else {}
                         
                         if self._pattern_applies_to_backlog(rules, current_backlog):
                             suggestions.append({
@@ -426,8 +415,8 @@ class EnhancedMemoryService(MemoryService):
                             key_metrics,
                             trend_direction
                         FROM sentiment_evolution 
-                        WHERE package_name = %s 
-                        AND time_period >= CURRENT_DATE - INTERVAL '%s days'
+                        WHERE package_name = ? 
+                        AND time_period >= date('now', '-' || ? || ' days')
                         ORDER BY topic, time_period
                     """, (package_name, days))
                     
@@ -441,8 +430,8 @@ class EnhancedMemoryService(MemoryService):
                             }
                         
                         trends[topic]['data_points'].append({
-                            'date': row['time_period'].isoformat(),
-                            'metrics': row['key_metrics']
+                            'date': row['time_period'],
+                            'metrics': json.loads(row['key_metrics']) if row['key_metrics'] else {}
                         })
                     
                     return {

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, session
-import psycopg2
+import sqlite3
 import bcrypt
 import secrets
 from datetime import datetime, timedelta
@@ -8,11 +8,52 @@ import os
 auth_bp = Blueprint('auth', __name__)
 
 # Configuração do banco de dados
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://admin:admin@localhost:5432/admin')
+DATABASE_PATH = os.getenv('DB_PATH', './iara_flow.db')
 
 def get_db_connection():
-    """Estabelece conexão com o banco de dados PostgreSQL"""
-    return psycopg2.connect(DATABASE_URL)
+    """Estabelece conexão com o banco de dados SQLite"""
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row  # Para retornar resultados como dicionários
+    return conn
+
+def init_auth_tables():
+    """Inicializar tabelas de autenticação no SQLite"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Tabela de usuários
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                email TEXT UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Tabela de sessões
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                session_token TEXT UNIQUE NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+    except Exception as e:
+        print(f"Erro ao inicializar tabelas de autenticação: {e}")
+
+# Inicializar tabelas ao importar o módulo
+init_auth_tables()
 
 @auth_bp.route('/api/auth/register', methods=['POST'])
 def register():
@@ -35,10 +76,10 @@ def register():
         try:
             # Inserir novo usuário
             cur.execute(
-                "INSERT INTO users (username, password_hash, email) VALUES (%s, %s, %s) RETURNING id",
+                "INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)",
                 (username, password_hash, email)
             )
-            user_id = cur.fetchone()[0]
+            user_id = cur.lastrowid
             conn.commit()
             
             return jsonify({
@@ -46,7 +87,7 @@ def register():
                 'user_id': user_id
             }), 201
             
-        except psycopg2.IntegrityError:
+        except sqlite3.IntegrityError:
             return jsonify({'error': 'Username ou email já existe'}), 409
         finally:
             cur.close()
@@ -71,7 +112,7 @@ def login():
         
         # Buscar usuário
         cur.execute(
-            "SELECT id, password_hash FROM users WHERE username = %s",
+            "SELECT id, password_hash FROM users WHERE username = ?",
             (username,)
         )
         user = cur.fetchone()
@@ -87,7 +128,7 @@ def login():
         
         # Salvar sessão no banco
         cur.execute(
-            "INSERT INTO sessions (user_id, session_token, expires_at) VALUES (%s, %s, %s)",
+            "INSERT INTO sessions (user_id, session_token, expires_at) VALUES (?, ?, ?)",
             (user_id, session_token, expires_at)
         )
         conn.commit()
@@ -120,7 +161,7 @@ def logout():
         
         # Remover sessão do banco
         cur.execute(
-            "DELETE FROM sessions WHERE session_token = %s",
+            "DELETE FROM sessions WHERE session_token = ?",
             (session_token,)
         )
         conn.commit()
@@ -152,7 +193,7 @@ def verify_session():
             SELECT s.user_id, s.expires_at, u.username, u.email 
             FROM sessions s 
             JOIN users u ON s.user_id = u.id 
-            WHERE s.session_token = %s AND s.expires_at > NOW()
+            WHERE s.session_token = ? AND s.expires_at > datetime('now')
             """,
             (session_token,)
         )
@@ -169,7 +210,7 @@ def verify_session():
             'user_id': session_data[0],
             'username': session_data[2],
             'email': session_data[3],
-            'expires_at': session_data[1].isoformat()
+            'expires_at': session_data[1]
         }), 200
         
     except Exception as e:
@@ -193,7 +234,7 @@ def get_user(user_id):
         cur.execute(
             """
             SELECT s.user_id FROM sessions s 
-            WHERE s.session_token = %s AND s.expires_at > NOW() AND s.user_id = %s
+            WHERE s.session_token = ? AND s.expires_at > datetime('now') AND s.user_id = ?
             """,
             (session_token, user_id)
         )
@@ -203,7 +244,7 @@ def get_user(user_id):
         
         # Buscar informações do usuário
         cur.execute(
-            "SELECT id, username, email, created_at FROM users WHERE id = %s",
+            "SELECT id, username, email, created_at FROM users WHERE id = ?",
             (user_id,)
         )
         user = cur.fetchone()
@@ -218,8 +259,9 @@ def get_user(user_id):
             'id': user[0],
             'username': user[1],
             'email': user[2],
-            'created_at': user[3].isoformat()
+            'created_at': user[3]
         }), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+

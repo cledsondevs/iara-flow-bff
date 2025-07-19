@@ -9,7 +9,7 @@ def test_memory_service():
     print("Iniciando teste do MemoryService...")
     
     # Certifique-se de que DATABASE_URL e OPENAI_API_KEY estão configuradas no .env
-    # Exemplo: DATABASE_URL="postgresql://user:password@host:port/database"
+    # Exemplo: DB_PATH="./iara_flow.db"
     # OPENAI_API_KEY="sua_chave_openai"
 
     try:
