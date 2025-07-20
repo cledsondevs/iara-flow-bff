@@ -113,6 +113,25 @@ def test_get_user(user_id, session_token):
         print(f"Erro ao testar obtenção de usuário: {e}")
         return False, None
 
+def test_list_users(session_token):
+    """Testar listagem de usuários"""
+    try:
+        response = requests.get(
+            f"{BASE_URL}/api/auth/users",
+            headers={
+                "Authorization": f"Bearer {session_token}",
+                "Content-Type": "application/json"
+            }
+        )
+        
+        print(f"List Users - Status: {response.status_code}")
+        print(f"Response: {response.json()}")
+        
+        return response.status_code == 200, response.json()
+    except Exception as e:
+        print(f"Erro ao testar listagem de usuários: {e}")
+        return False, None
+
 def main():
     """Função principal de teste"""
     print("=== Teste da API de Autenticação ===\n")
@@ -160,6 +179,13 @@ def main():
     success, user_response = test_get_user(user_id, session_token)
     if not success:
         print("Falha na obtenção de informações do usuário.")
+    print()
+    
+    # Testar listagem de usuários
+    print("6. Testando Listagem de Usuários...")
+    success, list_users_response = test_list_users(session_token)
+    if not success:
+        print("Falha na listagem de usuários.")
     print()
     
     print("=== Testes Concluídos ===")
