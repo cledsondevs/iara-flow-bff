@@ -14,6 +14,7 @@ from app.utils.database import init_database
 from app.auth.routes import auth_bp
 from app.api.routes.agent_routes import agent_bp
 from app.api.routes.review_agent_routes import review_agent_bp
+from app.api.routes.data_analysis_routes import data_analysis_bp
 
 def create_app(config_name='default'):
     """Factory function para criar a aplicação Flask"""
@@ -36,13 +37,14 @@ def create_app(config_name='default'):
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(agent_bp, url_prefix="/api")
     app.register_blueprint(review_agent_bp)
-    
-    @app.route('/')
+    app.register_blueprint(data_analysis_bp, url_prefix="/api")
+
+    @app.route("/")
     def health_check():
         """Endpoint de health check"""
-        return {'status': 'ok', 'message': 'Iara Flow BFF is running'}
+        return {"status": "ok", "message": "Iara Flow BFF is running"}
     
-    @app.route('/<path:path>')
+    @app.route("/<path:path>")
     def serve(path):
         """Servir arquivos estáticos"""
         static_folder_path = app.static_folder
@@ -61,15 +63,16 @@ def create_app(config_name='default'):
 
 def main():
     """Função principal para executar a aplicação"""
-    config_name = os.getenv('FLASK_ENV', 'default')
+    config_name = os.getenv("FLASK_ENV", "default")
     app = create_app(config_name)
     
     app.run(
-        host=app.config['HOST'],
-        port=app.config['PORT'],
-        debug=app.config['DEBUG']
+        host=app.config["HOST"],
+        port=app.config["PORT"],
+        debug=app.config["DEBUG"]
     )
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
+
+
 

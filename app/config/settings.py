@@ -9,11 +9,14 @@ load_dotenv()
 
 class Config:
     """Configurações base da aplicação"""
-    SECRET_KEY = os.getenv('SECRET_KEY', 'asdf#FGSgvasgf')
-    DATABASE_PATH = os.getenv('DB_PATH', './iara_flow.db')
+    SECRET_KEY = os.getenv("SECRET_KEY", "asdf#FGSgvasgf")
+    DATABASE_PATH = os.getenv("DB_PATH", "./iara_flow.db")
     
     # Configurações do OpenAI
-    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    
+    # Configurações do Google Gemini
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyDpLNBaYVrLSzxWj0kLD3v7n75pR5O-AfM")
     
     # Configurações de CORS
     CORS_ORIGINS = "*"
@@ -22,11 +25,11 @@ class Config:
     SESSION_TIMEOUT_HOURS = 24
     
     # Configurações de debug
-    DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+    DEBUG = os.getenv("DEBUG", "False").lower() == "true"
     
     # Configurações do servidor
-    HOST = '0.0.0.0'
-    PORT = int(os.getenv('PORT', 5000))
+    HOST = "0.0.0.0"
+    PORT = int(os.getenv("PORT", 5000))
 
 class DevelopmentConfig(Config):
     """Configurações para desenvolvimento"""
@@ -38,8 +41,9 @@ class ProductionConfig(Config):
 
 # Configuração padrão
 config = {
-    'development': DevelopmentConfig,
-    'production': ProductionConfig,
-    'default': DevelopmentConfig
+    "development": DevelopmentConfig,
+    "production": ProductionConfig,
+    "default": DevelopmentConfig
 }
+
 

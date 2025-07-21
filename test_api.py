@@ -132,6 +132,59 @@ def test_list_users(session_token):
         print(f"Erro ao testar listagem de usuários: {e}")
         return False, None
 
+def test_google_play_scraping(app_id, session_token):
+    """Testar scraping do Google Play"""
+    try:
+        response = requests.post(
+            f"{BASE_URL}/api/scraping/google-play/{app_id}",
+            headers={
+                "Authorization": f"Bearer {session_token}",
+                "Content-Type": "application/json"
+            }
+        )
+        print(f"Google Play Scraping ({app_id}) - Status: {response.status_code}")
+        print(f"Response: {response.json()}")
+        return response.status_code == 200, response.json()
+    except Exception as e:
+        print(f"Erro ao testar scraping do Google Play: {e}")
+        return False, None
+
+def test_apple_store_scraping(app_id, session_token):
+    """Testar scraping da Apple Store"""
+    try:
+        response = requests.post(
+            f"{BASE_URL}/api/scraping/apple-store/{app_id}",
+            headers={
+                "Authorization": f"Bearer {session_token}",
+                "Content-Type": "application/json"
+            }
+        )
+        print(f"Apple Store Scraping ({app_id}) - Status: {response.status_code}")
+        print(f"Response: {response.json()}")
+        return response.status_code == 200, response.json()
+    except Exception as e:
+        print(f"Erro ao testar scraping da Apple Store: {e}")
+        return False, None
+
+def test_sentiment_analysis(reviews, session_token):
+    """Testar análise de sentimentos"""
+    try:
+        data = {"reviews": reviews}
+        response = requests.post(
+            f"{BASE_URL}/api/sentiment/analyze",
+            json=data,
+            headers={
+                "Authorization": f"Bearer {session_token}",
+                "Content-Type": "application/json"
+            }
+        )
+        print(f"Sentiment Analysis - Status: {response.status_code}")
+        print(f"Response: {response.json()}")
+        return response.status_code == 200, response.json()
+    except Exception as e:
+        print(f"Erro ao testar análise de sentimentos: {e}")
+        return False, None
+
 def main():
     """Função principal de teste"""
     print("=== Teste da API de Autenticação ===\n")
@@ -187,6 +240,36 @@ def main():
     if not success:
         print("Falha na listagem de usuários.")
     print()
+
+    print("=== Testando Novas Funcionalidades de Scraping e Análise de Sentimentos ===\n")
+
+    # Testar scraping do Google Play
+    print("7. Testando Scraping do Google Play...")
+    google_play_app_id = "com.whatsapp"
+    success, gp_scraping_response = test_google_play_scraping(google_play_app_id, session_token)
+    if not success:
+        print(f"Falha no scraping do Google Play para {google_play_app_id}.")
+    print()
+
+    # Testar scraping da Apple Store
+    print("8. Testando Scraping da Apple Store...")
+    apple_store_app_id = "id310633997" # ID do WhatsApp na Apple Store
+    success, as_scraping_response = test_apple_store_scraping(apple_store_app_id, session_token)
+    if not success:
+        print(f"Falha no scraping da Apple Store para {apple_store_app_id}.")
+    print()
+
+    # Testar análise de sentimentos
+    print("9. Testando Análise de Sentimentos...")
+    sample_reviews = [
+        {"id": "1", "content": "Este aplicativo é excelente! Adorei todas as funcionalidades."},
+        {"id": "2", "content": "Muito lento e cheio de bugs. Não recomendo."},
+        {"id": "3", "content": "Funciona, mas poderia ser melhor."}
+    ]
+    success, sentiment_response = test_sentiment_analysis(sample_reviews, session_token)
+    if not success:
+        print("Falha na análise de sentimentos.")
+    print()
     
     print("=== Testes Concluídos ===")
     print(f"Usuário de teste criado/logado: {test_username}")
@@ -195,4 +278,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
