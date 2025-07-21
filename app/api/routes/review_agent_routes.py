@@ -433,3 +433,25 @@ def internal_error(error):
         "timestamp": datetime.utcnow().isoformat()
     }), 500
 
+
+
+@review_agent_bp.route("/send-report-email", methods=["POST"])
+def send_report_email():
+    """Envia um e-mail de relatório executivo."""
+    try:
+        data = request.get_json()
+        if not data or "recipient_email" not in data or "report_data" not in data:
+            return jsonify({
+                "success": False,
+                "error": "recipient_email e report_data são obrigatórios"
+            }), 400
+
+        recipient_email = data["recipient_email"]
+        report_data = data["report_data"]
+
+        result = review_agent.email_sender.send_executive_report_email(recipient_email, report_data)
+        return jsonify({"success": True, "result": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
