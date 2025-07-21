@@ -1,25 +1,15 @@
 ## Tarefas
 
-### Fase 1: Clonar e analisar o projeto atual
-- [x] Clonar o repositório
-- [x] Analisar a estrutura do projeto
+### Fase 1: Adicionar nova rota para listar usuários
+- [x] Adicionar a rota `/api/auth/users` em `app/auth/routes.py`
+- [x] Proteger a rota com o middleware de autenticação
+- [x] Implementar a lógica para buscar usuários no banco de dados
 
-### Fase 2: Modularizar a estrutura do projeto
-- [x] Criar nova estrutura de diretórios
-- [x] Mover arquivos para os novos diretórios
-- [x] Atualizar imports nos arquivos copiados
+### Fase 2: Testar a nova rota da API
+- [x] Atualizar `test_api.py` para incluir teste da nova rota
+- [x] Executar os testes para verificar o funcionamento
 
-### Fase 3: Corrigir o sistema de login
-- [x] Analisar o código de login (auth_routes.py)
-- [x] Identificar a causa do erro 405
-- [x] Implementar a correção
-
-### Fase 4: Testar a API e criar usuário de teste
-- [x] Criar script de teste para a API de login
-- [x] Criar usuário de teste via API
-
-### Fase 5: Subir alterações para nova branch no Git
-- [ ] Criar nova branch
+### Fase 3: Atualizar o repositório Git
 - [ ] Adicionar e commitar as alterações
 - [ ] Subir para o GitHub
 
