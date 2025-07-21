@@ -22,6 +22,7 @@ class ReviewAgentService:
         self.analyzer = SentimentAnalysisService()
         self.backlog_generator = BacklogGeneratorService()
         self.memory = EnhancedMemoryService()
+        self.email_sender = EmailSenderService()
         
         self.is_running = False
         self.scheduler_thread = None
@@ -275,9 +276,29 @@ class ReviewAgentService:
             
             # Gerar backlog
             result = self.backlog_generator.process_reviews_to_backlog(package_name, days)
-            
+
+            # Se houver reviews negativos, enviar e-mail de relatório
+            if result.get("summary", {}).get("status_summary", {}).get("negative", {}).get("count", 0) > 0:
+                # TODO: Implementar lógica para extrair main_themes, critical_reviews e suggestions
+                # Por enquanto, usaremos dados mockados ou extraídos de forma simplificada
+                report_data = {
+                    "package_name": package_name,
+                    "negative_reviews_count": result["summary"]["status_summary"]["negative"]["count"],
+                    "main_themes": ["usabilidade", "performance"], # Exemplo
+                    "critical_reviews": [], # Exemplo
+                    "suggestions": ["Priorizar correção de bugs", "Melhorar interface do usuário"] # Exemplo
+                }
+                # TODO: Definir para quem enviar o e-mail (gerentes)
+                # Por enquanto, usaremos um e-mail de teste
+                recipient_email = os.getenv("MANAGER_EMAIL", "test@example.com")
+                try:
+                    self.email_sender.send_executive_report_email(recipient_email, report_data)
+                    print(f"E-mail de relatório enviado para {recipient_email}")
+                except Exception as email_e:
+                    print(f"Erro ao enviar e-mail de relatório: {email_e}")
+
             # Aprender padrões para futuras otimizações
-            if result['generated_items'] > 0:
+            if result["generated_items"] > 0:
                 self._learn_from_backlog_generation(package_name, result, optimization)
             
             return {
@@ -452,4 +473,7 @@ class ReviewAgentService:
             
         except Exception as e:
             raise Exception(f"Erro ao processar consulta: {str(e)}")
+
+
+from app.services.email_service import EmailSenderService
 
