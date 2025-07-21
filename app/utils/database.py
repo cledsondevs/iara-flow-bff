@@ -7,7 +7,15 @@ from app.config.settings import Config
 
 def get_db_connection():
     """Estabelece conexão com o banco de dados SQLite"""
-    conn = sqlite3.connect(Config.DATABASE_PATH)
+    # Garantir que o diretório do banco existe
+    db_path = Config.DATABASE_PATH
+    db_dir = os.path.dirname(db_path)
+    
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+        print(f"Diretório criado: {db_dir}")
+    
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row  # Para retornar resultados como dicionários
     return conn
 

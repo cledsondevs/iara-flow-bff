@@ -25,6 +25,10 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
+# Corrigir problemas de banco de dados
+echo "🔧 Corrigindo configurações de banco de dados..."
+python3 fix_database.py
+
 # Parar containers existentes
 echo "🛑 Parando containers existentes..."
 docker-compose down
