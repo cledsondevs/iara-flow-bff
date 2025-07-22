@@ -113,6 +113,79 @@ curl -X POST \
 
 **Resposta esperada**: JSON com backlog gerado e otimizações aplicadas.
 
+## 📊 Funcionalidade de Dashboards Gerenciais
+
+Uma nova funcionalidade de dashboards gerenciais foi adicionada, permitindo a visualização personalizada dos dados do backlog.
+
+### Geração de Dashboards
+
+Os dashboards podem ser gerados de duas formas:
+
+1.  **Automaticamente com a Geração de Backlog**:
+    Ao chamar o endpoint de geração de backlog, um dashboard será criado automaticamente se a flag `generate_dashboard` for `True` (padrão).
+    ```bash
+    curl -X POST \
+      -H "Content-Type: application/json" \
+      -d '{"package_name": "com.example.app", "days": 7, "generate_dashboard": true}' \
+      http://localhost:5000/api/review-agent/apps/com.example.app/backlog
+    ```
+    A resposta incluirá um campo `dashboard` com a `custom_url` para acesso.
+
+2.  **Via Endpoint Dedicado**:
+    Você pode gerar um dashboard diretamente, fornecendo os dados do backlog (ou deixando o backend gerá-los).
+    ```bash
+    curl -X POST \
+      -H "Content-Type: application/json" \
+      -d '{"package_name": "com.example.app", "days": 7, "user_id": "user123", "session_id": "session456"}' \
+      http://localhost:5000/api/dashboard/generate
+    ```
+
+### Visualização de Dashboards
+
+Para visualizar um dashboard, acesse a URL personalizada gerada:
+
+```
+http://localhost:5000/api/dashboard/{custom_url}
+```
+
+Exemplo:
+
+```
+http://localhost:5000/api/dashboard/dashboard-com-example-test-202507220801-d944f9a4-150d28ee
+```
+
+### Endpoints de Dashboard
+
+-   `POST /api/dashboard/generate` - Gerar um novo dashboard.
+-   `GET /api/dashboard/{custom_url}` - Visualizar um dashboard específico.
+-   `GET /api/dashboard/list` - Listar todos os dashboards criados.
+-   `GET /api/dashboard/stats` - Obter estatísticas gerais sobre os dashboards.
+-   `POST /api/dashboard/preview` - Gerar um preview de dashboard sem salvá-lo.
+-   `DELETE /api/dashboard/{dashboard_id}` - Deletar um dashboard (soft delete).
+-   `POST /api/dashboard/cleanup` - Limpar dashboards expirados.
+
+### Frontend de Visualização (React)
+
+Para uma experiência de visualização mais rica, você pode usar o frontend React desenvolvido para consumir esses dashboards. Ele está disponível em outro repositório:
+
+[https://github.com/cledsondevs/iara-flow-prototyper](https://github.com/cledsondevs/iara-flow-prototyper)
+
+**Como executar o frontend (após clonar o repositório `iara-flow-prototyper`):**
+
+1.  **Instale as dependências**:
+    ```bash
+    cd iara-flow-prototyper
+    pnpm install
+    ```
+
+2.  **Inicie o servidor de desenvolvimento**:
+    ```bash
+    pnpm run dev --host 0.0.0.0
+    ```
+
+3.  **Acesse no navegador**:
+    Normalmente em `http://localhost:5173` ou outra porta disponível.
+
 ## Principais Melhorias e Funcionalidades
 
 ### 1. Estrutura Modularizada
@@ -154,6 +227,42 @@ curl -X POST \
 - `POST /api/review-agent/apps/<package_name>/analyze` - Analisar sentimento
 - `GET /api/review-agent/apps/<package_name>/dashboard` - Dashboard do app
 
+### Dashboards Gerenciais
+- `POST /api/dashboard/generate` - Gerar um novo dashboard. Exemplo de uso:
+  ```bash
+  curl -X POST \
+    -H "Content-Type: application/json" \
+    -d '{"package_name": "com.example.app", "days": 7, "user_id": "user123", "session_id": "session456"}' \
+    http://localhost:5000/api/dashboard/generate
+  ```
+- `GET /api/dashboard/{custom_url}` - Visualizar um dashboard específico. Exemplo de uso:
+  ```bash
+  curl http://localhost:5000/api/dashboard/dashboard-com-example-test-202507220801-d944f9a4-150d28ee
+  ```
+- `GET /api/dashboard/list` - Listar todos os dashboards criados. Exemplo de uso:
+  ```bash
+  curl http://localhost:5000/api/dashboard/list?package_name=com.example.app
+  ```
+- `GET /api/dashboard/stats` - Obter estatísticas gerais sobre os dashboards. Exemplo de uso:
+  ```bash
+  curl http://localhost:5000/api/dashboard/stats
+  ```
+- `POST /api/dashboard/preview` - Gerar um preview de dashboard sem salvá-lo. Exemplo de uso:
+  ```bash
+  curl -X POST \
+    -H "Content-Type: application/json" \
+    -d '{"package_name": "com.example.app", "days": 7}' \
+    http://localhost:5000/api/dashboard/preview
+  ```
+- `DELETE /api/dashboard/{dashboard_id}` - Deletar um dashboard (soft delete). Exemplo de uso:
+  ```bash
+  curl -X DELETE http://localhost:5000/api/dashboard/SEU_DASHBOARD_ID
+  ```
+- `POST /api/dashboard/cleanup` - Limpar dashboards expirados. Exemplo de uso:
+  ```bash
+  curl -X POST http://localhost:5000/api/dashboard/cleanup
+  ```
+
 ## Testes Realizados
 
 Durante o desenvolvimento e correções, os seguintes endpoints foram testados:
@@ -175,56 +284,55 @@ Um usuário de teste é criado/utilizado nos testes automatizados:
 
 Para deploy em um servidor de produção utilizando Gunicorn e Systemd, certifique-se de que:
 
-1. **`wsgi.py` está configurado corretamente**: O arquivo `wsgi.py` deve apontar para a instância da aplicação Flask em `app.main:create_app()`.
-   Exemplo de `wsgi.py`:
-   ```python
-   import sys
-   import os
+1.  **`wsgi.py` está configurado corretamente**: O arquivo `wsgi.py` deve apontar para a instância da aplicação Flask em `app.main:create_app()`.
+    Exemplo de `wsgi.py`:
+    ```python
+    import sys
+    import os
 
-   sys.path.insert(0, os.path.dirname(__file__))
+    sys.path.insert(0, os.path.dirname(__file__))
 
-   from app.main import create_app
+    from app.main import create_app
 
-   application = create_app()
-   ```
+    application = create_app()
+    ```
 
-2. **Serviço Systemd aponta para o `wsgi:application`**: A configuração do seu serviço `.service` (ex: `/etc/systemd/system/iara-flow-bff.service`) deve ter a linha `ExecStart` apontando para `wsgi:application`.
-   Exemplo de `ExecStart`:
-   ```
-   ExecStart=/caminho/para/seu/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:5000 wsgi:application
-   ```
+2.  **Serviço Systemd aponta para o `wsgi:application`**: A configuração do seu serviço `.service` (ex: `/etc/systemd/system/iara-flow-bff.service`) deve ter a linha `ExecStart` apontando para `wsgi:application`.
+    Exemplo de `ExecStart`:
+    ```
+    ExecStart=/caminho/para/seu/venv/bin/gunicorn --workers 3 --bind 0.0.0.0:5000 wsgi:application
+    ```
 
-3. **Recarregue e Reinicie o Serviço**: Após qualquer alteração nos arquivos de configuração ou código, execute:
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl restart iara-flow-bff
-   ```
+3.  **Recarregue e Reinicie o Serviço**: Após qualquer alteração nos arquivos de configuração ou código, execute:
+    ```bash
+    sudo systemctl daemon-reload
+    sudo systemctl restart iara-flow-bff
+    ```
 
 ## 🔄 Histórico de Branches
 
-- **`main`**: Branch principal com código estável
-- **`fix-optimize-backlog-generation`**: ✅ **NOVA BRANCH** - Correção do método `optimize_backlog_generation`
+-   **`main`**: Branch principal com código estável
+-   **`fix-optimize-backlog-generation`**: ✅ **NOVA BRANCH** - Correção do método `optimize_backlog_generation`
+-   **`feat-dashboard-integration`**: ✅ **NOVA BRANCH** - Adição da funcionalidade de dashboards gerenciais
 
 ## Próximos Passos Sugeridos
 
-1. **Testes Unitários Abrangentes**: Implementar testes unitários mais detalhados para cada módulo e função.
-2. **Documentação da API (Swagger/OpenAPI)**: Gerar uma documentação interativa da API para facilitar o consumo por outros serviços ou frontends.
-3. **Sistema de Logging Estruturado**: Implementar um sistema de logging mais robusto para monitoramento e depuração em produção.
-4. **Validação de Dados**: Utilizar bibliotecas como `Marshmallow` ou `Pydantic` para validação de dados de entrada e saída.
-5. **Cache**: Implementar estratégias de cache para melhorar a performance de endpoints frequentemente acessados.
-6. **Monitoramento**: Adicionar métricas e health checks avançados para monitorar a saúde da aplicação em tempo real.
+1.  **Testes Unitários Abrangentes**: Implementar testes unitários mais detalhados para cada módulo e função.
+2.  **Documentação da API (Swagger/OpenAPI)**: Gerar uma documentação interativa da API para facilitar o consumo por outros serviços ou frontends.
+3.  **Sistema de Logging Estruturado**: Implementar um sistema de logging mais robusto para monitoramento e depuração em produção.
+4.  **Validação de Dados**: Utilizar bibliotecas como `Marshmallow` ou `Pydantic` para validação de dados de entrada e saída.
+5.  **Cache**: Implementar estratégias de cache para melhorar a performance de endpoints frequentemente acessados.
+6.  **Monitoramento**: Adicionar métricas e health checks avançados para monitorar a saúde da aplicação em tempo real.
 
 ## Contribuição
 
 Sinta-se à vontade para contribuir com o projeto! Para isso:
 
-1. Crie uma nova branch a partir da branch principal.
-2. Faça suas alterações e adicione novos testes, se aplicável.
-3. Teste suas alterações localmente.
-4. Crie um Pull Request descrevendo suas modificações.
+1.  Crie uma nova branch a partir da branch principal.
+2.  Faça suas alterações e adicione novos testes, se aplicável.
+3.  Teste suas alterações localmente.
+4.  Crie um Pull Request descrevendo suas modificações.
 
 ---
 
-**Última atualização**: 22/07/2025 - Correção do método `optimize_backlog_generation`
-
-
+**Última atualização**: 22/07/2025 - Correção do método `optimize_backlog_generation` e Adição da funcionalidade de Dashboards Gerenciais
