@@ -22,7 +22,7 @@ class BacklogGeneratorService:
         self.database_path = os.getenv("DB_PATH", "./iara_flow.db")
         
         self.llm = ChatOpenAI(
-            model="gpt-4.1-mini",
+            model="gpt-4o-mini",
             temperature=0.3,
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
