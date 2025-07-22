@@ -659,9 +659,4 @@ Retorne um JSON:
         except Exception as e:
             # Fallback: retornar dados mock em caso de erro
             print(f"Erro no processo de geração de backlog: {str(e)}")
-            print("Usando fallback com dados mock")
-            
-            from .backlog_generator_service_fallback import BacklogGeneratorServiceFallback
-            fallback_service = BacklogGeneratorServiceFallback()
-            return fallback_service.process_reviews_to_backlog(package_name, days)
-
+            raise Exception(f"Erro no processo de geração de backlog: {str(e)}")
