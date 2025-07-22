@@ -262,7 +262,10 @@ class ReviewAgentService:
             raise Exception(f"Erro ao analisar sentimento: {str(e)}")
     
     def generate_backlog_for_app(self, package_name: str, 
-                               days: int = 7) -> Dict[str, Any]:
+                               days: int = 7, 
+                               generate_dashboard: bool = True,
+                               user_id: str = None,
+                               session_id: str = None) -> Dict[str, Any]:
         """Gerar backlog para um aplicativo específico"""
         try:
             # Obter contexto da memória de longo prazo
@@ -298,16 +301,43 @@ class ReviewAgentService:
                 except Exception as email_e:
                     print(f"Erro ao enviar e-mail de relatório: {email_e}")
 
+            # Gerar dashboard automaticamente se solicitado
+            dashboard_result = None
+            if generate_dashboard and result.get("generated_items", 0) > 0:
+                try:
+                    from app.services.dashboard_service import DashboardService
+                    dashboard_service = DashboardService()
+                    
+                    dashboard_result = dashboard_service.create_dashboard(
+                        package_name=package_name,
+                        backlog_data=result,
+                        user_id=user_id,
+                        session_id=session_id,
+                        expires_hours=168  # 7 dias
+                    )
+                    
+                    print(f"Dashboard criado automaticamente: {dashboard_result['custom_url']}")
+                    
+                except Exception as dashboard_e:
+                    print(f"Erro ao gerar dashboard automaticamente: {dashboard_e}")
+                    dashboard_result = {"error": str(dashboard_e)}
+
             # Aprender padrões para futuras otimizações
             if result["generated_items"] > 0:
                 self._learn_from_backlog_generation(package_name, result, optimization)
             
-            return {
+            response = {
                 "package_name": package_name,
                 "generation_result": result,
                 "optimization_applied": optimization,
                 "timestamp": datetime.utcnow().isoformat()
             }
+            
+            # Adicionar informações do dashboard se foi gerado
+            if dashboard_result:
+                response["dashboard"] = dashboard_result
+            
+            return response
             
         except Exception as e:
             raise Exception(f"Erro ao gerar backlog: {str(e)}")
