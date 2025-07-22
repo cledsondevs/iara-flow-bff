@@ -15,6 +15,7 @@ from app.auth.routes import auth_bp
 from app.api.routes.agent_routes import agent_bp
 from app.api.routes.review_agent_routes import review_agent_bp
 from app.api.routes.data_analysis_routes import data_analysis_bp
+from app.api.routes.dashboard_routes import dashboard_bp
 
 def create_app(config_name='default'):
     """Factory function para criar a aplicação Flask"""
@@ -38,6 +39,7 @@ def create_app(config_name='default'):
     app.register_blueprint(agent_bp, url_prefix="/api")
     app.register_blueprint(review_agent_bp)
     app.register_blueprint(data_analysis_bp, url_prefix="/api")
+    app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
 
     @app.route("/")
     def health_check():
