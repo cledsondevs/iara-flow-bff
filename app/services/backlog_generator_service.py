@@ -13,6 +13,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.models.review_models import BacklogItem, SentimentType
+from app.services.email_service import EmailSenderService
 
 
 
