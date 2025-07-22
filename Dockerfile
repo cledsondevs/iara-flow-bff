@@ -16,8 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar código da aplicação
 COPY . .
 
-# Criar diretório para banco de dados
-RUN mkdir -p /app/data
+# Criar diretório para banco de dados com permissões corretas
+RUN mkdir -p /app/data && chmod 755 /app/data
 
 # Expor porta
 EXPOSE 5000
