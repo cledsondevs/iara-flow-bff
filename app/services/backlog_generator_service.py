@@ -14,6 +14,8 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from app.models.review_models import BacklogItem, SentimentType
 
+
+
 class BacklogGeneratorService:
     def __init__(self):
         self.database_path = os.getenv("DB_PATH", "./iara_flow.db")
@@ -23,6 +25,9 @@ class BacklogGeneratorService:
             temperature=0.3,
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
+        
+        # Inicializar serviço de e-mail
+        self.email_service = EmailSenderService()
         
         self._setup_prompts()
         self._init_tables()
@@ -635,7 +640,8 @@ Retorne um JSON:
             raise Exception(f"Erro ao obter resumo do backlog: {str(e)}")
     
     def process_reviews_to_backlog(self, package_name: str = None, 
-                                 days: int = 7) -> Dict[str, Any]:
+                                 days: int = 7, 
+                                 recipient_email: str = None) -> Dict[str, Any]:
         """Processo completo: analisar reviews e gerar backlog"""
         try:
             # Gerar itens de backlog
@@ -647,16 +653,111 @@ Retorne um JSON:
             # Obter resumo
             summary = self.get_backlog_summary(package_name)
             
+            # Preparar dados para o e-mail
+            email_result = None
+            if recipient_email:
+                try:
+                    # Preparar dados do relatório para o e-mail
+                    report_data = self._prepare_backlog_email_data(
+                        backlog_items, summary, package_name, days
+                    )
+                    
+                    # Enviar e-mail
+                    email_result = self.email_service.send_backlog_report_email(
+                        recipient_email, report_data
+                    )
+                    
+                except Exception as email_error:
+                    print(f"Erro ao enviar e-mail: {email_error}")
+                    email_result = {
+                        "status": "error", 
+                        "message": f"Erro ao enviar e-mail: {str(email_error)}"
+                    }
+            
             return {
                 "generated_items": len(backlog_items),
                 "saved_items": len(saved_ids),
                 "saved_ids": saved_ids,
                 "summary": summary,
                 "package_name": package_name,
-                "analysis_period_days": days
+                "analysis_period_days": days,
+                "email_result": email_result
             }
             
         except Exception as e:
             # Fallback: retornar dados mock em caso de erro
             print(f"Erro no processo de geração de backlog: {str(e)}")
             raise Exception(f"Erro no processo de geração de backlog: {str(e)}")
+    
+    def _prepare_backlog_email_data(self, backlog_items: List[BacklogItem], 
+                                  summary: Dict[str, Any], 
+                                  package_name: str, 
+                                  days: int) -> Dict[str, Any]:
+        """Preparar dados do backlog para envio por e-mail"""
+        try:
+            # Itens de alta prioridade
+            high_priority_items = [
+                item for item in backlog_items 
+                if item.priority >= 4
+            ]
+            
+            # Categorizar itens
+            items_by_category = {}
+            for item in backlog_items:
+                if item.category not in items_by_category:
+                    items_by_category[item.category] = []
+                items_by_category[item.category].append({
+                    'title': item.title,
+                    'description': item.description,
+                    'priority': item.priority,
+                    'frequency': item.frequency,
+                    'sentiment_score': item.sentiment_score
+                })
+            
+            # Principais temas identificados
+            main_themes = []
+            for item in backlog_items:
+                if item.metadata and 'related_topics' in item.metadata:
+                    main_themes.extend(item.metadata['related_topics'])
+            
+            # Contar frequência dos temas
+            theme_counts = {}
+            for theme in main_themes:
+                theme_counts[theme] = theme_counts.get(theme, 0) + 1
+            
+            # Top 5 temas mais frequentes
+            top_themes = sorted(theme_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+            
+            return {
+                'package_name': package_name or 'Aplicativo',
+                'total_items': len(backlog_items),
+                'high_priority_count': len(high_priority_items),
+                'analysis_period_days': days,
+                'items_by_category': items_by_category,
+                'high_priority_items': [
+                    {
+                        'title': item.title,
+                        'description': item.description,
+                        'priority': item.priority,
+                        'category': item.category,
+                        'frequency': item.frequency
+                    } for item in high_priority_items[:10]
+                ],
+                'main_themes': [theme for theme, count in top_themes],
+                'category_summary': summary.get('category_summary', {}),
+                'status_summary': summary.get('status_summary', {})
+            }
+            
+        except Exception as e:
+            print(f"Erro ao preparar dados do e-mail: {e}")
+            return {
+                'package_name': package_name or 'Aplicativo',
+                'total_items': len(backlog_items),
+                'high_priority_count': 0,
+                'analysis_period_days': days,
+                'items_by_category': {},
+                'high_priority_items': [],
+                'main_themes': [],
+                'category_summary': {},
+                'status_summary': {}
+            }
