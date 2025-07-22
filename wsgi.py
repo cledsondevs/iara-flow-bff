@@ -14,16 +14,3 @@ from src.main import app
 # Variável que o Gunicorn precisa encontrar
 application = app
 
-
-
-
-
-
-
-
-
-
-
-
-
-
