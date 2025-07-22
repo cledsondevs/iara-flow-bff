@@ -21,75 +21,74 @@ class EnhancedMemoryService(MemoryService):
     def _create_enhanced_tables(self):
         """Criar tabelas adicionais para memória de reviews"""
         try:
-            with self._get_connection() as conn:
-                cur = conn.cursor()
+            conn = sqlite3.connect(self.db_path)
+            cur = conn.cursor()
+            
+            # Tabela para padrões de sentimento aprendidos
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS review_sentiment_patterns (
+                    id TEXT PRIMARY KEY,
+                    package_name TEXT NOT NULL,
+                    pattern_type TEXT NOT NULL,
+                    pattern_data TEXT NOT NULL,
+                    confidence_score REAL DEFAULT 0.0,
+                    frequency INTEGER DEFAULT 1,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    metadata TEXT
+                )
+            """)
+            
+            # Tabela para correlações problema-solução
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS problem_solution_correlations (
+                    id TEXT PRIMARY KEY,
+                    problem_pattern TEXT NOT NULL,
+                    solution_implemented TEXT,
+                    backlog_item_id TEXT,
+                    sentiment_before TEXT,
+                    sentiment_after TEXT,
+                    effectiveness_score REAL DEFAULT 0.0,
+                    time_to_impact_days INTEGER,
+                    metadata TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Tabela para evolução de sentimento
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS sentiment_evolution (
+                    id TEXT PRIMARY KEY,
+                    package_name TEXT NOT NULL,
+                    topic TEXT NOT NULL,
+                    time_period DATE NOT NULL,
+                    sentiment_distribution TEXT NOT NULL,
+                    key_metrics TEXT,
+                    trend_direction TEXT,
+                    metadata TEXT
+                )
+            """)
+            
+            # Tabela para otimização de backlog
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS backlog_optimization_patterns (
+                    id TEXT PRIMARY KEY,
+                    pattern_name TEXT NOT NULL,
+                    pattern_description TEXT,
+                    success_indicators TEXT,
+                    failure_indicators TEXT,
+                    optimization_rules TEXT,
+                    confidence_score REAL DEFAULT 0.0,
+                    usage_count INTEGER DEFAULT 0,
+                    last_used TIMESTAMP,
+                    metadata TEXT
+                )
+            """)
+            
+            conn.commit()
+            cur.close()
+            conn.close()
                 
-                # Tabela para padrões de sentimento aprendidos
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS review_sentiment_patterns (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-                        package_name TEXT NOT NULL,
-                        pattern_type TEXT NOT NULL,
-                        pattern_data TEXT NOT NULL,
-                        confidence_score REAL DEFAULT 0.0,
-                        frequency INTEGER DEFAULT 1,
-                        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        metadata TEXT,
-                        UNIQUE(package_name, pattern_type, json_extract(pattern_data, '$.key'))
-                    )
-                """)
-                
-                # Tabela para correlações problema-solução
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS problem_solution_correlations (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-                        problem_pattern TEXT NOT NULL,
-                        solution_implemented TEXT,
-                        backlog_item_id TEXT,
-                        sentiment_before TEXT,
-                        sentiment_after TEXT,
-                        effectiveness_score REAL DEFAULT 0.0,
-                        time_to_impact_days INTEGER,
-                        metadata TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-                
-                # Tabela para evolução de sentimento
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS sentiment_evolution (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-                        package_name TEXT NOT NULL,
-                        topic TEXT NOT NULL,
-                        time_period DATE NOT NULL,
-                        sentiment_distribution TEXT NOT NULL,
-                        key_metrics TEXT,
-                        trend_direction TEXT,
-                        metadata TEXT,
-                        UNIQUE(package_name, topic, time_period)
-                    )
-                """)
-                
-                # Tabela para otimização de backlog
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS backlog_optimization_patterns (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-                        pattern_name TEXT NOT NULL UNIQUE,
-                        pattern_description TEXT,
-                        success_indicators TEXT,
-                        failure_indicators TEXT,
-                        optimization_rules TEXT,
-                        confidence_score REAL DEFAULT 0.0,
-                        usage_count INTEGER DEFAULT 0,
-                        last_used TIMESTAMP,
-                        metadata TEXT
-                    )
-                """)
-                
-                conn.commit()
-                cur.close()
-                    
         except Exception as e:
             print(f"Erro ao criar tabelas aprimoradas: {e}")
     
@@ -97,26 +96,24 @@ class EnhancedMemoryService(MemoryService):
                               pattern_data: Dict[str, Any], confidence: float = 0.5):
         """Aprender um novo padrão de sentimento"""
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    # Verificar se padrão já existe
-                    pattern_key = pattern_data.get('key', str(uuid.uuid4()))
-                    pattern_data['key'] = pattern_key
-                    
-                    cur.execute("""
-                        INSERT OR REPLACE INTO review_sentiment_patterns 
-                        (package_name, pattern_type, pattern_data, confidence_score, frequency, last_updated)
-                        VALUES (?, ?, ?, ?, 
-                                COALESCE((SELECT frequency FROM review_sentiment_patterns 
-                                         WHERE package_name = ? AND pattern_type = ? 
-                                         AND json_extract(pattern_data, '$.key') = ?), 0) + 1,
-                                CURRENT_TIMESTAMP)
-                    """, (
-                        package_name, pattern_type, json.dumps(pattern_data),
-                        confidence, package_name, pattern_type, pattern_key
-                    ))
-                    
-                    conn.commit()
+            conn = self._get_connection()
+            cur = conn.cursor()
+            
+            # Verificar se padrão já existe
+            pattern_key = pattern_data.get('key', str(uuid.uuid4()))
+            pattern_data['key'] = pattern_key
+            
+            cur.execute("""
+                INSERT OR REPLACE INTO review_sentiment_patterns 
+                (id, package_name, pattern_type, pattern_data, confidence_score, frequency, last_updated)
+                VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+            """, (
+                str(uuid.uuid4()), package_name, pattern_type, json.dumps(pattern_data), confidence
+            ))
+            
+            conn.commit()
+            cur.close()
+            conn.close()
                     
         except Exception as e:
             raise Exception(f"Erro ao aprender padrão de sentimento: {str(e)}")
