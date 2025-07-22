@@ -404,4 +404,83 @@ class EnhancedMemoryService(MemoryService):
                     
         except Exception as e:
             return {}
+    
+    def optimize_backlog_generation(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Otimizar geração de backlog baseado na memória de longo prazo"""
+        try:
+            package_name = context.get('package_name', '')
+            patterns = context.get('patterns', {})
+            current_backlog = context.get('current_backlog', [])
+            
+            # Obter padrões de otimização aprendidos
+            optimization_suggestions = self.get_backlog_optimization_suggestions()
+            
+            # Obter soluções efetivas para problemas similares
+            effective_solutions = []
+            for pattern in patterns.get('common_issues', []):
+                solutions = self.get_effective_solutions(pattern)
+                effective_solutions.extend(solutions)
+            
+            # Obter tendências de sentimento
+            sentiment_trends = self.get_sentiment_trends(package_name)
+            
+            optimization_result = {
+                'optimization_suggestions': optimization_suggestions,
+                'effective_solutions': effective_solutions,
+                'sentiment_trends': sentiment_trends,
+                'priority_adjustments': self._calculate_priority_adjustments(
+                    patterns, sentiment_trends
+                ),
+                'recommended_focus_areas': self._identify_focus_areas(
+                    patterns, sentiment_trends
+                )
+            }
+            
+            return optimization_result
+            
+        except Exception as e:
+            print(f"Erro na otimização de backlog: {str(e)}")
+            return {
+                'optimization_suggestions': [],
+                'effective_solutions': [],
+                'sentiment_trends': {},
+                'priority_adjustments': {},
+                'recommended_focus_areas': []
+            }
+    
+    def _calculate_priority_adjustments(self, patterns: Dict[str, Any], 
+                                      sentiment_trends: Dict[str, Any]) -> Dict[str, Any]:
+        """Calcular ajustes de prioridade baseados em padrões e tendências"""
+        adjustments = {}
+        
+        # Aumentar prioridade para problemas com tendência de piora
+        for topic, trend_data in sentiment_trends.items():
+            if trend_data and len(trend_data) > 0:
+                latest_trend = trend_data[0]
+                if latest_trend.get('direction') == 'declining':
+                    adjustments[topic] = 'increase_priority'
+                elif latest_trend.get('direction') == 'improving':
+                    adjustments[topic] = 'maintain_priority'
+        
+        return adjustments
+    
+    def _identify_focus_areas(self, patterns: Dict[str, Any], 
+                            sentiment_trends: Dict[str, Any]) -> List[str]:
+        """Identificar áreas de foco baseadas em padrões e tendências"""
+        focus_areas = []
+        
+        # Identificar problemas mais frequentes
+        common_issues = patterns.get('common_issues', [])
+        if common_issues:
+            focus_areas.extend(common_issues[:3])  # Top 3 problemas
+        
+        # Identificar tópicos com tendência negativa
+        for topic, trend_data in sentiment_trends.items():
+            if trend_data and len(trend_data) > 0:
+                latest_trend = trend_data[0]
+                if latest_trend.get('direction') == 'declining':
+                    if topic not in focus_areas:
+                        focus_areas.append(topic)
+        
+        return focus_areas
 
