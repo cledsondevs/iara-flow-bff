@@ -4,6 +4,7 @@ Serviço para coleta de reviews de lojas de aplicativos
 import os
 import json
 import uuid
+import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import sqlite3
@@ -15,7 +16,9 @@ from app.modules.scraping.apple_store import AppleAppStoreScrapingService
 class ReviewCollectorService:
     def __init__(self):
         self.database_path = os.getenv("DB_PATH", "./iara_flow.db")
-        # Usar módulos internos de scraping em vez da API externa
+        # Configurar API externa para scraping
+        self.api_base_url = "http://200.98.64.133:5000/api/scraping"
+        # Manter módulos internos como fallback
         self.google_play_scraper = GooglePlayScrapingService()
         self.apple_store_scraper = AppleAppStoreScrapingService()
         self._create_tables()
@@ -222,48 +225,123 @@ class ReviewCollectorService:
             raise Exception(f"Erro ao obter configuração do app: {str(e)}")
 
     def collect_reviews(self, package_name: str, store: StoreType, limit: int = 100) -> List[Review]:
-        """Coletar reviews de um aplicativo específico usando módulos internos"""
+        """Coletar reviews de um aplicativo específico usando API externa"""
         try:
             reviews = []
             
             if store == StoreType.GOOGLE_PLAY:
-                # Usar módulo interno do Google Play
-                reviews_data, _ = self.google_play_scraper.get_app_reviews(package_name, limit)
+                # Usar API externa do Google Play
+                url = f"{self.api_base_url}/google-play/{package_name}"
+                params = {"limit": limit}
                 
-                for review_data in reviews_data:
-                    review = Review(
-                        package_name=package_name,
-                        store=store,
-                        review_id=review_data.get("review_id", ""),
-                        user_name=review_data.get("user_name", ""),
-                        rating=review_data.get("rating", 0),
-                        content=review_data.get("content", ""),
-                        date=review_data.get("date"),
-                        metadata=review_data
-                    )
-                    reviews.append(review)
+                try:
+                    response = requests.get(url, params=params, timeout=30)
+                    response.raise_for_status()
+                    
+                    data = response.json()
+                    
+                    if "reviews" in data:
+                        for review_data in data["reviews"]:
+                            review = Review(
+                                package_name=package_name,
+                                store=store,
+                                review_id=review_data.get("reviewId", review_data.get("id", "")),
+                                user_name=review_data.get("userName", ""),
+                                rating=review_data.get("score", 0),
+                                content=review_data.get("text", ""),
+                                date=self._parse_date(review_data.get("date")),
+                                metadata=review_data
+                            )
+                            reviews.append(review)
+                except Exception as api_error:
+                    print(f"Erro na API externa, usando módulo interno: {api_error}")
+                    # Fallback para módulo interno
+                    reviews_data, _ = self.google_play_scraper.get_app_reviews(package_name, limit)
+                    
+                    for review_data in reviews_data:
+                        review = Review(
+                            package_name=package_name,
+                            store=store,
+                            review_id=review_data.get("review_id", ""),
+                            user_name=review_data.get("user_name", ""),
+                            rating=review_data.get("rating", 0),
+                            content=review_data.get("content", ""),
+                            date=review_data.get("date"),
+                            metadata=review_data
+                        )
+                        reviews.append(review)
                     
             elif store == StoreType.APPLE_STORE:
-                # Usar módulo interno da Apple Store
-                reviews_data = self.apple_store_scraper.get_app_reviews(package_name, limit)
+                # Usar API externa da Apple Store
+                url = f"{self.api_base_url}/apple-store/{package_name}"
+                params = {"limit": limit}
                 
-                for review_data in reviews_data:
-                    review = Review(
-                        package_name=package_name,
-                        store=store,
-                        review_id=review_data.get("review_id", ""),
-                        user_name=review_data.get("user_name", ""),
-                        rating=review_data.get("rating", 0),
-                        content=review_data.get("content", ""),
-                        date=review_data.get("date"),
-                        metadata=review_data
-                    )
-                    reviews.append(review)
+                try:
+                    response = requests.get(url, params=params, timeout=30)
+                    response.raise_for_status()
+                    
+                    data = response.json()
+                    
+                    if "reviews" in data:
+                        for review_data in data["reviews"]:
+                            review = Review(
+                                package_name=package_name,
+                                store=store,
+                                review_id=review_data.get("reviewId", review_data.get("id", "")),
+                                user_name=review_data.get("userName", ""),
+                                rating=review_data.get("score", 0),
+                                content=review_data.get("text", ""),
+                                date=self._parse_date(review_data.get("date")),
+                                metadata=review_data
+                            )
+                            reviews.append(review)
+                except Exception as api_error:
+                    print(f"Erro na API externa, usando módulo interno: {api_error}")
+                    # Fallback para módulo interno
+                    reviews_data = self.apple_store_scraper.get_app_reviews(package_name, limit)
+                    
+                    for review_data in reviews_data:
+                        review = Review(
+                            package_name=package_name,
+                            store=store,
+                            review_id=review_data.get("review_id", ""),
+                            user_name=review_data.get("user_name", ""),
+                            rating=review_data.get("rating", 0),
+                            content=review_data.get("content", ""),
+                            date=review_data.get("date"),
+                            metadata=review_data
+                        )
+                        reviews.append(review)
             
             return reviews
             
         except Exception as e:
             raise Exception(f"Erro ao coletar reviews: {str(e)}")
+    
+    def _parse_date(self, date_str: str) -> Optional[datetime]:
+        """Converter string de data para datetime"""
+        if not date_str:
+            return None
+        
+        try:
+            # Tentar diferentes formatos de data
+            formats = [
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%dT%H:%M:%S",
+                "%Y-%m-%dT%H:%M:%SZ",
+                "%Y-%m-%d"
+            ]
+            
+            for fmt in formats:
+                try:
+                    return datetime.strptime(date_str, fmt)
+                except ValueError:
+                    continue
+            
+            return None
+            
+        except Exception:
+            return None
     
     def save_reviews(self, reviews: List[Review]) -> int:
         """Salvar reviews no banco de dados"""
