@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from src.services.memory_service import MemoryService
+from app.services.memory_service import MemoryService
 from langchain_core.messages import HumanMessage, AIMessage
 
 load_dotenv()
