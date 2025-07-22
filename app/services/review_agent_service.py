@@ -14,6 +14,7 @@ from app.services.review_collector_service import ReviewCollectorService
 from app.modules.sentiment.analysis import SentimentAnalysisService
 from app.services.backlog_generator_service import BacklogGeneratorService
 from app.services.enhanced_memory_service import EnhancedMemoryService
+from app.services.email_service import EmailSenderService
 from app.models.review_models import StoreType
 
 class ReviewAgentService:
