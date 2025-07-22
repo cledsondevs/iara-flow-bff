@@ -296,7 +296,7 @@ class ReviewAgentService:
                 # Por enquanto, usaremos um e-mail de teste
                 recipient_email = os.getenv("MANAGER_EMAIL", "test@example.com")
                 try:
-                    self.email_sender.send_executive_report_email(recipient_email, report_data)
+                    self.email_sender.send_backlog_report_email(recipient_email, report_data)
                     print(f"E-mail de relatório enviado para {recipient_email}")
                 except Exception as email_e:
                     print(f"Erro ao enviar e-mail de relatório: {email_e}")

@@ -22,7 +22,7 @@ class BacklogGeneratorService:
         self.database_path = os.getenv("DB_PATH", "./iara_flow.db")
         
         self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             temperature=0.3,
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
@@ -291,6 +291,7 @@ Retorne um JSON:
         try:
             # Analisar padrões
             patterns = self.analyze_review_patterns(package_name, days)
+            print(f"Patterns analyzed: {patterns}") # Adicionado para depuração
             
             # Preparar dados para o prompt
             frequent_issues = [item["issue"] for item in patterns["frequent_issues"][:10]]
@@ -313,10 +314,9 @@ Retorne um JSON:
                 topic_frequencies=topic_frequencies,
                 sentiment_summary=sentiment_summary
             )
-            
-            # Executar geração
+            print(f"Formatted Prompt: {formatted_prompt}") # Adicionado para depuração
             response = self.llm.invoke(formatted_prompt)
-            
+            print(f"LLM Response: {response.content}") # Adicionado para depuração
             try:
                 result = json.loads(response.content)
                 backlog_data = result.get("backlog_items", [])
