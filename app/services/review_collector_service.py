@@ -565,41 +565,6 @@ class ReviewCollectorService:
         except Exception as e:
             raise Exception(f"Erro ao obter configuração do app: {str(e)}")
 
-    def collect_reviews(self, package_name: str, store: StoreType, limit: int = 100) -> List[Review]:
-        """Coletar reviews de um aplicativo específico"""
-        try:
-            store_name = store.value
-            url = f"{self.api_base_url}/{package_name}/reviews"
-            params = {
-                "store": store_name,
-                "limit": limit
-            }
-            
-            response = requests.get(url, params=params, timeout=30)
-            response.raise_for_status()
-            
-            data = response.json()
-            reviews = []
-            
-            if "reviews" in data:
-                for review_data in data["reviews"]:
-                    review = Review(
-                        package_name=package_name,
-                        store=store,
-                        review_id=review_data.get("id", ""),
-                        user_name=review_data.get("userName", ""),
-                        rating=review_data.get("score", 0),
-                        content=review_data.get("text", ""),
-                        date=self._parse_date(review_data.get("date")),
-                        metadata=review_data
-                    )
-                    reviews.append(review)
-            
-            return reviews
-            
-        except Exception as e:
-            raise Exception(f"Erro ao coletar reviews: {str(e)}")
-    
     def save_reviews(self, reviews: List[Review]) -> int:
         """Salvar reviews no banco de dados"""
         try:
