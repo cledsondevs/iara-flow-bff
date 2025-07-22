@@ -13,7 +13,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
-from src.models.review_models import Review, SentimentType, SentimentPattern
+from app.models.review_models import Review, SentimentType, SentimentPattern
 
 class SentimentAnalysisService:
     def __init__(self):

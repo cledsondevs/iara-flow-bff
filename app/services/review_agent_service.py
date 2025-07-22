@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 
 from app.services.review_collector_service import ReviewCollectorService
-from app.modules.sentiment.analysis import SentimentAnalysisService
+from app.services.sentiment_analysis_service import SentimentAnalysisService
 from app.services.backlog_generator_service import BacklogGeneratorService
 from app.services.enhanced_memory_service import EnhancedMemoryService
 from app.services.email_service import EmailSenderService
