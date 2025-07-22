@@ -8,9 +8,9 @@ load_dotenv()
 # Adicionar o diretório do projeto ao path
 sys.path.insert(0, os.path.dirname(__file__))
 
-# Importar o app Flask
-from src.main import app
+# Importar a função create_app do seu módulo principal
+from app.main import create_app
 
-# Variável que o Gunicorn precisa encontrar
-application = app
+# Criar a instância da aplicação Flask
+application = create_app()
 
