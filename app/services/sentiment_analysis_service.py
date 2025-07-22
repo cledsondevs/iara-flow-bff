@@ -91,19 +91,16 @@ Retorne um JSON com grupos de tópicos similares:
     def analyze_review_sentiment(self, review: Review) -> Dict[str, Any]:
         """Analisar sentimento e extrair tópicos de um review"""
         try:
-            # Preparar o prompt
-            formatted_prompt = self.sentiment_prompt.format(
-                review_text=review.content,
-                rating=review.rating
-            )
-            
             # Executar análise
-            response = self.llm.invoke(formatted_prompt)
+            chain = self.sentiment_prompt | self.llm | JsonOutputParser()
             
             # Parsear resposta JSON
             try:
-                analysis = json.loads(response.content)
-            except json.JSONDecodeError:
+                analysis = chain.invoke({
+                    "review_text": review.content,
+                    "rating": review.rating
+                })
+            except Exception:
                 # Fallback para análise básica
                 analysis = self._basic_sentiment_analysis(review)
             
@@ -328,13 +325,12 @@ Retorne um JSON com grupos de tópicos similares:
                 # Tópicos mais frequentes
                 cur.execute(f"""
                     SELECT 
-                        json_extract(topics, '$[' || value || ']') as topic,
+                        json_each.value as topic,
                         COUNT(*) as frequency
-                    FROM reviews, json_each(topics) 
+                    FROM reviews, json_each(reviews.topics) 
                     {where_clause}
-                    AND topics IS NOT NULL
-                    AND json_extract(topics, '$[' || value || ']') IS NOT NULL
-                    GROUP BY topic
+                    AND reviews.topics IS NOT NULL
+                    GROUP BY json_each.value
                     ORDER BY frequency DESC
                     LIMIT 10
                 """, params)
@@ -362,18 +358,17 @@ Retorne um JSON com grupos de tópicos similares:
                 # Buscar tópicos e sentimentos dos últimos 7 dias
                 cur.execute("""
                     SELECT 
-                        json_extract(topics, '$[' || t.value || ']') as topic,
+                        t.value as topic,
                         sentiment,
                         COUNT(*) as frequency,
-                        GROUP_CONCAT(DISTINCT json_extract(keywords, '$[' || k.value || ']')) as keywords
+                        GROUP_CONCAT(DISTINCT k.value) as keywords
                     FROM reviews r, 
                          json_each(r.topics) as t
                     LEFT JOIN json_each(r.keywords) as k ON 1=1
                     WHERE r.package_name = ? 
-                    AND r.created_at >= datetime('now', '-7 days')
+                    AND r.created_at >= datetime(\'now\', \'-7 days\')
                     AND r.topics IS NOT NULL
-                    AND json_extract(r.topics, '$[' || t.value || ']') IS NOT NULL
-                    GROUP BY topic, sentiment
+                    GROUP BY t.value, sentiment
                 """, (package_name,))
                 
                 patterns = cur.fetchall()

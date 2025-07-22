@@ -74,7 +74,93 @@ def init_database():
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         """)
-        
+
+        # Tabela de reviews
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS reviews (
+                id TEXT PRIMARY KEY,
+                package_name TEXT NOT NULL,
+                store TEXT NOT NULL,
+                review_id TEXT UNIQUE NOT NULL,
+                user_name TEXT,
+                rating INTEGER,
+                content TEXT,
+                review_date TEXT,
+                sentiment TEXT,
+                topics TEXT,
+                keywords TEXT,
+                metadata TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Tabela de configurações de aplicativos
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS app_configs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                package_name TEXT UNIQUE NOT NULL,
+                app_name TEXT NOT NULL,
+                stores TEXT,
+                collection_frequency INTEGER,
+                last_collected TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Tabela de padrões de sentimento
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS sentiment_patterns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                package_name TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                sentiment_trend TEXT,
+                keywords TEXT,
+                frequency INTEGER,
+                last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(package_name, topic)
+            )
+        """)
+
+        # Tabela de itens de backlog
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS backlog_items (
+                id TEXT PRIMARY KEY,
+                package_name TEXT NOT NULL,
+                review_id TEXT,
+                category TEXT,
+                priority INTEGER,
+                description TEXT,
+                status TEXT,
+                assigned_to TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Tabela de otimizações de backlog
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS backlog_optimizations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pattern_name TEXT UNIQUE NOT NULL,
+                description TEXT,
+                success_indicators TEXT,
+                failure_indicators TEXT,
+                optimization_rules TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Tabela de evolução de sentimento
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS sentiment_evolution (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                package_name TEXT NOT NULL,
+                topic TEXT NOT NULL,
+                sentiment_distribution TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         conn.commit()
         cur.close()
         conn.close()
@@ -84,4 +170,3 @@ def init_database():
     except Exception as e:
         print(f"Erro ao inicializar banco de dados: {e}")
         raise
-
