@@ -1,4 +1,4 @@
-# Iara Flow BFF - Backend para Frontend
+## Iara Flow BFF - Backend para Frontend
 
 Este repositório contém o backend para frontend (BFF) do Iara Flow, um agente de modelos construído com LangChain e banco de dados SQLite. O projeto foi modularizado para facilitar a manutenção e escalabilidade.
 
