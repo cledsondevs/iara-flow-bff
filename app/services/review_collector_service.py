@@ -369,7 +369,7 @@ class ReviewCollectorService:
                             review.sentiment.value if review.sentiment else None,
                             json.dumps(review.topics),
                             json.dumps(review.keywords),
-                            json.dumps(review.metadata)
+                            json.dumps(review.metadata, default=str)
                         ))
                         
                         if cur.rowcount > 0:
@@ -669,7 +669,7 @@ class ReviewCollectorService:
                             review.sentiment.value if review.sentiment else None,
                             json.dumps(review.topics),
                             json.dumps(review.keywords),
-                            json.dumps(review.metadata)
+                            json.dumps(review.metadata, default=str)
                         ))
                         
                         if cur.rowcount > 0:
