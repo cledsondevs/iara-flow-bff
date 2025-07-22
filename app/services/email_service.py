@@ -1,38 +1,34 @@
-
 import os
 import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import List, Dict, Any
+from email.message import EmailMessage
+from typing import Dict, Any
 
 class EmailSenderService:
     def __init__(self):
-        self.smtp_server = os.getenv("SMTP_SERVER")
-        self.smtp_port = int(os.getenv("SMTP_PORT", 587))
-        self.smtp_username = os.getenv("SMTP_USERNAME")
-        self.smtp_password = os.getenv("SMTP_PASSWORD")
-        self.sender_email = os.getenv("SENDER_EMAIL")
+        # Credenciais do Gmail fornecidas pelo usuário
+        self.sender_email = os.getenv("SENDER_EMAIL", "cledsonborgesalves@gmail.com")
+        self.app_password = os.getenv("GMAIL_APP_PASSWORD", "eapbanqlgbrrrims")
+        self.smtp_server = "smtp.gmail.com"
+        self.smtp_port = 465 # Porta para SSL
 
     def send_backlog_report_email(self, recipient_email: str, report_data: Dict[str, Any]):
         """Enviar e-mail com relatório de backlog gerado"""
-        if not all([self.smtp_server, self.smtp_username, self.smtp_password, self.sender_email]):
-            raise ValueError("Configurações de SMTP incompletas. Verifique as variáveis de ambiente.")
+        if not all([self.sender_email, self.app_password]):
+            raise ValueError("Credenciais do Gmail incompletas. Verifique as variáveis de ambiente ou o código.")
 
         subject = f"Relatório de Backlog Gerado - {report_data.get('package_name', 'App')}"
         body = self._generate_backlog_email_body(report_data)
 
-        msg = MIMEMultipart()
+        msg = EmailMessage()
+        msg["Subject"] = subject
         msg["From"] = self.sender_email
         msg["To"] = recipient_email
-        msg["Subject"] = subject
-
-        msg.attach(MIMEText(body, 'html'))
+        msg.set_content(body, subtype='html')
 
         try:
-            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_username, self.smtp_password)
-                server.send_message(msg)
+            with smtplib.SMTP_SSL(self.smtp_server, self.smtp_port) as smtp:
+                smtp.login(self.sender_email, self.app_password)
+                smtp.send_message(msg)
             return {"status": "success", "message": "E-mail de relatório de backlog enviado com sucesso."}
         except Exception as e:
             raise Exception(f"Erro ao enviar e-mail de relatório de backlog: {str(e)}")
@@ -40,14 +36,17 @@ class EmailSenderService:
     def _generate_backlog_email_body(self, report_data: Dict[str, Any]) -> str:
         """Gerar corpo do e-mail para relatório de backlog"""
         # Dados do relatório
-        package_name = report_data.get('package_name', 'Aplicativo Desconhecido')
-        total_items = report_data.get('total_items', 0)
-        high_priority_count = report_data.get('high_priority_count', 0)
-        analysis_period = report_data.get('analysis_period_days', 7)
-        main_themes = report_data.get('main_themes', [])
-        high_priority_items = report_data.get('high_priority_items', [])
-        items_by_category = report_data.get('items_by_category', {})
-        category_summary = report_data.get('category_summary', {})
+        package_name = report_data.get("package_name", "Aplicativo Desconhecido")
+        total_items = report_data.get("total_items", 0)
+        high_priority_count = report_data.get("high_priority_count", 0)
+        analysis_period = report_data.get("analysis_period_days", 7)
+        main_themes = report_data.get("main_themes", [])
+        high_priority_items = report_data.get("high_priority_items", [])
+        items_by_category = report_data.get("items_by_category", {})
+        category_summary = report_data.get("category_summary", {})
+
+        # Criar lista de temas principais
+        themes_text = ", ".join(main_themes[:5]) if main_themes else "Nenhum tema específico identificado"
 
         html_body = f"""
         <html>
@@ -82,7 +81,7 @@ class EmailSenderService:
                         <li><strong>Total de itens gerados:</strong> {total_items}</li>
                         <li><strong>Itens de alta prioridade:</strong> {high_priority_count}</li>
                         <li><strong>Período de análise:</strong> {analysis_period} dias</li>
-                        <li><strong>Principais temas identificados:</strong> {', '.join(main_themes[:5]) if main_themes else 'Nenhum tema específico identificado'}</li>
+                        <li><strong>Principais temas identificados:</strong> {themes_text}</li>
                     </ul>
                 </div>
 
@@ -105,14 +104,16 @@ class EmailSenderService:
             """
             
             for item in high_priority_items:
-                priority_class = "priority-high" if item['priority'] == 5 else "priority-medium"
+                priority_class = "priority-high" if item["priority"] == 5 else "priority-medium"
+                description_short = item["description"][:100] + ("..." if len(item["description"]) > 100 else "")
                 html_body += f"""
                         <tr>
-                            <td><strong>{item['title']}</strong></td>
-                            <td>{item['category'].title()}</td>
-                            <td class="{priority_class}">{item['priority']}</td>
-                            <td>{item['frequency']}</td>
-                            <td>{item['description'][:100]}{'...' if len(item['description']) > 100 else ''}</td>                     </tr>
+                            <td><strong>{item["title"]}</strong></td>
+                            <td>{item["category"].title()}</td>
+                            <td class="{priority_class}">{item["priority"]}</td>
+                            <td>{item["frequency"]}</td>
+                            <td>{description_short}</td>
+                        </tr>
                 """
             
             html_body += """
@@ -142,8 +143,8 @@ class EmailSenderService:
                 html_body += f"""
                         <tr>
                             <td>{category.title()}</td>
-                            <td>{data['count']}</td>
-                            <td>{data['avg_priority']:.1f}</td>
+                            <td>{data["count"]}</td>
+                            <td>{data["avg_priority"]:.1f}</td>
                         </tr>
                 """
             
@@ -164,13 +165,30 @@ class EmailSenderService:
                 """
                 
                 for item in items[:5]:  # Mostrar apenas os 5 primeiros de cada categoria
-                    priority_text = "🔴" if item['priority'] >= 4 else "🟡" if item['priority'] == 3 else "🟢"
+                    priority_text = "🔴" if item["priority"] >= 4 else "🟡" if item["priority"] == 3 else "🟢"
+                    description_short = item["description"][:150] + ("..." if len(item["description"]) > 150 else "")
                     html_body += f"""
                             <li>
                                 <strong>{priority_text} {item["title"]}</strong><br>
-                                <small>{item["description"][:150]}{"...".format() if len(item["description"]) > 150 else ""}</small>
+                                <small>{description_short}</small>
                             </li>
                     """
                 
                 if len(items) > 5:
                     html_body += f"<li><em>... e mais {len(items) - 5} itens</em></li>"
+                
+                html_body += """
+                        </ul>
+                    </div>
+                """
+
+        html_body += """
+                <p>Este relatório foi gerado automaticamente pelo sistema de análise de reviews.</p>
+                <p>Para mais informações, entre em contato com a equipe de desenvolvimento.</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        return html_body
+
