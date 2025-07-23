@@ -191,11 +191,25 @@ def generate_backlog(package_name):
         logs = []
         data = request.get_json() or {}
         days = data.get('days', 7)
+        generate_dashboard = data.get('generate_dashboard', True)  # Por padrão, gerar dashboard
         
         add_log(logs, f"Gerando backlog para {package_name} (últimos {days} dias)")
         
-        result = review_agent.generate_backlog_for_app(package_name, days)
-        add_log(logs, f"Backlog gerado: {result.get('total_items', 0)} itens criados")
+        result = review_agent.generate_backlog_for_app(
+            package_name=package_name, 
+            days=days,
+            generate_dashboard=generate_dashboard
+        )
+        
+        add_log(logs, f"Backlog gerado: {result.get('generation_result', {}).get('generated_items', 0)} itens criados")
+        
+        # Se dashboard foi gerado, adicionar log
+        if result.get('dashboard'):
+            dashboard_info = result['dashboard']
+            if 'error' not in dashboard_info:
+                add_log(logs, f"Dashboard criado: {dashboard_info.get('full_url', 'N/A')}")
+            else:
+                add_log(logs, f"Erro ao criar dashboard: {dashboard_info.get('error', 'Erro desconhecido')}")
         
         return jsonify({
             "success": True,
