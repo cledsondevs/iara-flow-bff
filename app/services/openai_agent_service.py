@@ -1,4 +1,4 @@
-import openai
+from openai import OpenAI
 import json
 from typing import Dict, Any, Optional, List
 from datetime import datetime
@@ -7,6 +7,7 @@ from app.services.memory_service import MemoryService
 class OpenAIAgentService:
     def __init__(self):
         self.memory_service = MemoryService()
+        self.client = None
         
     def chat_with_openai(
         self,
@@ -32,11 +33,14 @@ class OpenAIAgentService:
         try:
             # Configurar cliente OpenAI
             if api_key:
-                openai.api_key = api_key
+                self.client = OpenAI(api_key=api_key)
+            else:
+                # Se não forneceu api_key, usa variável de ambiente OPENAI_API_KEY
+                self.client = OpenAI()
             
             # Gerar session_id se não fornecido
             if not session_id:
-                session_id = f"openai_session_{user_id}_{ datetime.utcnow().isoformat(),}"
+                session_id = f"openai_session_{user_id}_{datetime.utcnow().isoformat()}"
             
             # Recuperar histórico da conversa
             chat_history = self.memory_service.get_conversation_history(user_id, session_id)
@@ -70,8 +74,8 @@ class OpenAIAgentService:
                 "content": message
             })
             
-            # Fazer chamada para OpenAI
-            response = openai.ChatCompletion.create(
+            # Fazer chamada para OpenAI usando a nova API
+            response = self.client.chat.completions.create(
                 model=model,
                 messages=messages,
                 max_tokens=1000,
@@ -121,7 +125,7 @@ class OpenAIAgentService:
                 session_id=session_id,
                 message_type="human",
                 content=user_message,
-                metadata={"agent": "openai", "timestamp": datetime.utcnow().isoformat(),}
+                metadata={"agent": "openai", "timestamp": datetime.utcnow().isoformat()}
             )
             
             # Salvar resposta do agente
@@ -130,7 +134,7 @@ class OpenAIAgentService:
                 session_id=session_id,
                 message_type="ai",
                 content=ai_response,
-                metadata={"agent": "openai",  "timestamp": datetime.utcnow().isoformat(),}
+                metadata={"agent": "openai", "timestamp": datetime.utcnow().isoformat()}
             )
             
         except Exception as e:
@@ -194,13 +198,12 @@ class OpenAIAgentService:
             return {
                 "success": True,
                 "message": f"Histórico da sessão {session_id} limpo com sucesso",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.utcnow().isoformat()
             }
             
         except Exception as e:
             return {
                 "success": False,
                 "error": f"Erro ao limpar conversa: {str(e)}",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.utcnow().isoformat()
             }
-
