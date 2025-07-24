@@ -24,13 +24,13 @@ from app.api.routes.chat_routes import chat_bp
 
 def create_app(config_name='default'):
     """Factory function para criar a aplicação Flask"""
-    app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), \'static\'))
+    app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
     
     # Carregar configurações
     app.config.from_object(config[config_name])
     
     # Configurar CORS
-    CORS(app, origins=app.config[\'CORS_ORIGINS\'])
+    CORS(app, origins=app.config['CORS_ORIGINS'])
     
     # Inicializar banco de dados
     try:
