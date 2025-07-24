@@ -20,7 +20,7 @@ class SentimentAnalysisService:
         self.database_path = os.getenv("DB_PATH", "./iara_flow.db")
         
         self.llm = ChatOpenAI(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             temperature=0.1,
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
@@ -91,16 +91,19 @@ Retorne um JSON com grupos de tópicos similares:
     def analyze_review_sentiment(self, review: Review) -> Dict[str, Any]:
         """Analisar sentimento e extrair tópicos de um review"""
         try:
+            # Preparar o prompt
+            formatted_prompt = self.sentiment_prompt.format(
+                review_text=review.content,
+                rating=review.rating
+            )
+            
             # Executar análise
-            chain = self.sentiment_prompt | self.llm | JsonOutputParser()
+            response = self.llm.invoke(formatted_prompt)
             
             # Parsear resposta JSON
             try:
-                analysis = chain.invoke({
-                    "review_text": review.content,
-                    "rating": review.rating
-                })
-            except Exception:
+                analysis = json.loads(response.content)
+            except json.JSONDecodeError:
                 # Fallback para análise básica
                 analysis = self._basic_sentiment_analysis(review)
             
@@ -325,12 +328,13 @@ Retorne um JSON com grupos de tópicos similares:
                 # Tópicos mais frequentes
                 cur.execute(f"""
                     SELECT 
-                        json_each.value as topic,
+                        json_extract(topics, '$[' || value || ']') as topic,
                         COUNT(*) as frequency
-                    FROM reviews, json_each(reviews.topics) 
+                    FROM reviews, json_each(topics) 
                     {where_clause}
-                    AND reviews.topics IS NOT NULL
-                    GROUP BY json_each.value
+                    AND topics IS NOT NULL
+                    AND json_extract(topics, '$[' || value || ']') IS NOT NULL
+                    GROUP BY topic
                     ORDER BY frequency DESC
                     LIMIT 10
                 """, params)
@@ -358,17 +362,18 @@ Retorne um JSON com grupos de tópicos similares:
                 # Buscar tópicos e sentimentos dos últimos 7 dias
                 cur.execute("""
                     SELECT 
-                        t.value as topic,
+                        json_extract(topics, '$[' || t.value || ']') as topic,
                         sentiment,
                         COUNT(*) as frequency,
-                        GROUP_CONCAT(DISTINCT k.value) as keywords
+                        GROUP_CONCAT(DISTINCT json_extract(keywords, '$[' || k.value || ']')) as keywords
                     FROM reviews r, 
                          json_each(r.topics) as t
                     LEFT JOIN json_each(r.keywords) as k ON 1=1
                     WHERE r.package_name = ? 
-                    AND r.created_at >= datetime(\'now\', \'-7 days\')
+                    AND r.created_at >= datetime('now', '-7 days')
                     AND r.topics IS NOT NULL
-                    GROUP BY t.value, sentiment
+                    AND json_extract(r.topics, '$[' || t.value || ']') IS NOT NULL
+                    GROUP BY topic, sentiment
                 """, (package_name,))
                 
                 patterns = cur.fetchall()
@@ -405,4 +410,6 @@ Retorne um JSON com grupos de tópicos similares:
                     
         except Exception as e:
             raise Exception(f"Erro ao atualizar padrões de sentimento: {str(e)}")
+
+
 

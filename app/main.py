@@ -18,6 +18,7 @@ from app.api.routes.openai_agent_routes import openai_agent_bp
 from app.api.routes.review_agent_routes import review_agent_bp
 from app.api.routes.data_analysis_routes import data_analysis_bp
 from app.api.routes.dashboard_routes import dashboard_bp
+from app.api.routes.chat_routes import chat_bp
 
 def create_app(config_name='default'):
     """Factory function para criar a aplicação Flask"""
@@ -36,6 +37,14 @@ def create_app(config_name='default'):
     except Exception as e:
         print(f"Erro ao inicializar banco de dados: {e}")
     
+    # Inicializar MemoryService para garantir que as tabelas sejam criadas
+    try:
+        from app.services.memory_service import MemoryService
+        memory_service = MemoryService()
+        print("MemoryService inicializado com sucesso")
+    except Exception as e:
+        print(f"Erro ao inicializar MemoryService: {e}")
+    
     # Registrar blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(agent_bp, url_prefix="/api")
@@ -44,6 +53,7 @@ def create_app(config_name='default'):
     app.register_blueprint(review_agent_bp)
     app.register_blueprint(data_analysis_bp, url_prefix="/api")
     app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
+    app.register_blueprint(chat_bp, url_prefix="/api")
 
     @app.route("/")
     def health_check():

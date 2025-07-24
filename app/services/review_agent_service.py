@@ -10,12 +10,11 @@ import threading
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 
-from app.services.review_collector_service import ReviewCollectorService
-from app.services.sentiment_analysis_service import SentimentAnalysisService
-from app.services.backlog_generator_service import BacklogGeneratorService
-from app.services.enhanced_memory_service import EnhancedMemoryService
-from app.services.email_service import EmailSenderService
-from app.models.review_models import StoreType
+from src.services.review_collector_service import ReviewCollectorService
+from src.services.sentiment_analysis_service import SentimentAnalysisService
+from src.services.backlog_generator_service import BacklogGeneratorService
+from src.services.enhanced_memory_service import EnhancedMemoryService
+from src.models.review_models import StoreType
 
 class ReviewAgentService:
     def __init__(self):
@@ -23,7 +22,6 @@ class ReviewAgentService:
         self.analyzer = SentimentAnalysisService()
         self.backlog_generator = BacklogGeneratorService()
         self.memory = EnhancedMemoryService()
-        self.email_sender = EmailSenderService()
         
         self.is_running = False
         self.scheduler_thread = None
@@ -262,10 +260,7 @@ class ReviewAgentService:
             raise Exception(f"Erro ao analisar sentimento: {str(e)}")
     
     def generate_backlog_for_app(self, package_name: str, 
-                               days: int = 7, 
-                               generate_dashboard: bool = True,
-                               user_id: str = None,
-                               session_id: str = None) -> Dict[str, Any]:
+                               days: int = 7) -> Dict[str, Any]:
         """Gerar backlog para um aplicativo específico"""
         try:
             # Obter contexto da memória de longo prazo
@@ -280,64 +275,17 @@ class ReviewAgentService:
             
             # Gerar backlog
             result = self.backlog_generator.process_reviews_to_backlog(package_name, days)
-
-            # Se houver reviews negativos, enviar e-mail de relatório
-            if result.get("summary", {}).get("status_summary", {}).get("negative", {}).get("count", 0) > 0:
-                # TODO: Implementar lógica para extrair main_themes, critical_reviews e suggestions
-                # Por enquanto, usaremos dados mockados ou extraídos de forma simplificada
-                report_data = {
-                    "package_name": package_name,
-                    "negative_reviews_count": result["summary"]["status_summary"]["negative"]["count"],
-                    "main_themes": ["usabilidade", "performance"], # Exemplo
-                    "critical_reviews": [], # Exemplo
-                    "suggestions": ["Priorizar correção de bugs", "Melhorar interface do usuário"] # Exemplo
-                }
-                # TODO: Definir para quem enviar o e-mail (gerentes)
-                # Por enquanto, usaremos um e-mail de teste
-                recipient_email = os.getenv("MANAGER_EMAIL", "test@example.com")
-                try:
-                    self.email_sender.send_backlog_report_email(recipient_email, report_data)
-                    print(f"E-mail de relatório enviado para {recipient_email}")
-                except Exception as email_e:
-                    print(f"Erro ao enviar e-mail de relatório: {email_e}")
-
-            # Gerar dashboard automaticamente se solicitado
-            dashboard_result = None
-            if generate_dashboard and result.get("generated_items", 0) > 0:
-                try:
-                    from app.services.dashboard_service import DashboardService
-                    dashboard_service = DashboardService()
-                    
-                    dashboard_result = dashboard_service.create_dashboard(
-                        package_name=package_name,
-                        backlog_data=result,
-                        user_id=user_id,
-                        session_id=session_id,
-                        expires_hours=168  # 7 dias
-                    )
-                    
-                    print(f"Dashboard criado automaticamente: {dashboard_result['custom_url']}")
-                    
-                except Exception as dashboard_e:
-                    print(f"Erro ao gerar dashboard automaticamente: {dashboard_e}")
-                    dashboard_result = {"error": str(dashboard_e)}
-
+            
             # Aprender padrões para futuras otimizações
-            if result["generated_items"] > 0:
+            if result['generated_items'] > 0:
                 self._learn_from_backlog_generation(package_name, result, optimization)
             
-            response = {
+            return {
                 "package_name": package_name,
                 "generation_result": result,
                 "optimization_applied": optimization,
                 "timestamp": datetime.utcnow().isoformat()
             }
-            
-            # Adicionar informações do dashboard se foi gerado
-            if dashboard_result:
-                response["dashboard"] = dashboard_result
-            
-            return response
             
         except Exception as e:
             raise Exception(f"Erro ao gerar backlog: {str(e)}")
@@ -505,5 +453,3 @@ class ReviewAgentService:
         except Exception as e:
             raise Exception(f"Erro ao processar consulta: {str(e)}")
 
-
-from app.services.email_service import EmailSenderService
