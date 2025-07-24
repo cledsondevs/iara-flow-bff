@@ -1,6 +1,7 @@
 import openai
 import json
 from typing import Dict, Any, Optional, List
+from datetime import datetime
 from app.services.memory_service import MemoryService
 
 class OpenAIAgentService:
@@ -81,16 +82,16 @@ class OpenAIAgentService:
             ai_response = response.choices[0].message.content.strip()
             
             # Salvar conversa na memória
-            self.save_conversation(user_id, session_id, message, ai_response)
+            self.memory_service.save_conversation(user_id, session_id, message, ai_response)
             
             return {
                 "response": ai_response,
                 "session_id": session_id,
-                "timestamp": self.memory_service.get_current_timestamp(),
+                "timestamp": datetime.utcnow().isoformat(),
                 "model_used": model,
                 "success": True
             }
-            
+    
         except Exception as e:
             error_message = f"Erro ao processar mensagem com OpenAI: {str(e)}"
             print(error_message)
