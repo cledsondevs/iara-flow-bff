@@ -68,31 +68,48 @@ class MemoryService:
         except Exception as e:
             raise Exception(f"Erro ao salvar conversa: {str(e)}")
     
-    def get_conversation_history(self, user_id: str, limit: int = 10) -> List[Dict]:
+    def get_conversation_history(self, user_id: str, session_id: Optional[str] = None, limit: int = 10) -> List[Dict]:
         """Recuperar histórico de conversas do SQLite"""
         try:
             with self._get_connection() as conn:
                 cur = conn.cursor()
-                cur.execute("""
-                    SELECT message, response, created_at, metadata
-                    FROM conversations
-                    WHERE user_id = ?
-                    ORDER BY created_at DESC
-                    LIMIT ?
-                """, (user_id, limit))
+                if session_id:
+                    cur.execute("""
+                        SELECT message, response, created_at, metadata
+                        FROM conversations
+                        WHERE user_id = ? AND json_extract(metadata, '$.session_id') = ?
+                        ORDER BY created_at DESC
+                        LIMIT ?
+                    """, (user_id, session_id, limit))
+                else:
+                    cur.execute("""
+                        SELECT message, response, created_at, metadata
+                        FROM conversations
+                        WHERE user_id = ?
+                        ORDER BY created_at DESC
+                        LIMIT ?
+                    """, (user_id, limit))
                 
                 results = cur.fetchall()
                 cur.close()
-                return [dict(row) for row in results]
+                
+                formatted_history = []
+                for row in reversed(results): # Inverter para ordem cronológica
+                    formatted_history.append({"type": "human", "content": row["message"]})
+                    formatted_history.append({"type": "ai", "content": row["response"]})
+                return formatted_history
         except Exception as e:
             raise Exception(f"Erro ao recuperar histórico: {str(e)}")
     
-    def clear_user_memory(self, user_id: str):
-        """Limpar toda a memória de um usuário"""
+    def clear_conversation_history(self, user_id: str, session_id: Optional[str] = None):
+        """Limpar memória do agente para um usuário e sessão específicos"""
         try:
             with self._get_connection() as conn:
                 cur = conn.cursor()
-                cur.execute("DELETE FROM conversations WHERE user_id = ?", (user_id,))
+                if session_id:
+                    cur.execute("DELETE FROM conversations WHERE user_id = ? AND json_extract(metadata, '$.session_id') = ?", (user_id, session_id))
+                else:
+                    cur.execute("DELETE FROM conversations WHERE user_id = ?", (user_id,))
                 conn.commit()
                 cur.close()
         except Exception as e:
