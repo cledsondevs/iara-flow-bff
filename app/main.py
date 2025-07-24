@@ -14,6 +14,7 @@ from app.utils.database import init_database
 from app.auth.routes import auth_bp
 from app.api.routes.agent_routes import agent_bp
 from app.api.routes.gemini_agent_routes import gemini_agent_bp
+from app.api.routes.openai_agent_routes import openai_agent_bp
 from app.api.routes.review_agent_routes import review_agent_bp
 from app.api.routes.data_analysis_routes import data_analysis_bp
 from app.api.routes.dashboard_routes import dashboard_bp
@@ -38,7 +39,8 @@ def create_app(config_name='default'):
     # Registrar blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(agent_bp, url_prefix="/api")
-    app.register_blueprint(gemini_agent_bp, url_prefix="/api")
+    app.register_blueprint(gemini_agent_bp, url_prefix="/api/gemini")
+    app.register_blueprint(openai_agent_bp, url_prefix="/api/openai")
     app.register_blueprint(review_agent_bp)
     app.register_blueprint(data_analysis_bp, url_prefix="/api")
     app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
