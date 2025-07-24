@@ -1,7 +1,7 @@
 import openai
 import json
 from typing import Dict, Any, Optional, List
-from .memory_service import MemoryService
+from app.services.memory_service import MemoryService
 
 class OpenAIAgentService:
     def __init__(self):
