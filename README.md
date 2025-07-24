@@ -337,37 +337,5 @@ Sinta-se à vontade para contribuir com o projeto! Para isso:
 
 **Última atualização**: 22/07/2025 - Correção do método `optimize_backlog_generation` e Adição da funcionalidade de Dashboards Gerenciais
 
-## 🧠 Funcionalidade de Memória do Agente (Gemini)
 
-O backend agora suporta um sistema de memória para os agentes conversacionais, permitindo que eles mantenham o contexto da conversa ao longo do tempo. Isso é crucial para interações mais naturais e coerentes.
-
-### Como Funciona
-
-1.  **`user_id`**: Cada usuário é identificado por um `user_id` único. Este ID é usado para associar o histórico de conversas a um usuário específico.
-2.  **`session_id`**: Dentro de cada interação do usuário, um `session_id` é utilizado para agrupar mensagens que fazem parte da mesma sessão de conversa.
-3.  **Persistência**: O histórico da conversa (mensagens do usuário e respostas do agente) é salvo no banco de dados (SQLite) associado ao `user_id` e `session_id`.
-4.  **Recuperação**: Antes de processar uma nova mensagem, o agente recupera o histórico recente da conversa usando o `user_id` e `session_id` fornecidos. Isso permite que o modelo de linguagem (ex: Gemini) tenha acesso ao contexto anterior para gerar respostas relevantes.
-
-### Benefícios
-
-*   **Coerência da Conversa**: O agente se lembra do que foi dito anteriormente, evitando repetições e fornecendo respostas mais precisas.
-*   **Personalização**: A interação se torna mais personalizada, pois o agente tem conhecimento do histórico individual de cada usuário.
-*   **Continuidade**: Permite que as conversas sejam retomadas de onde pararam, mesmo após um período de inatividade ou em sessões diferentes.
-
-### Implementação
-
-A lógica de persistência e recuperação da memória está implementada principalmente nos serviços `memory_service.py` e `gemini_agent_service.py`.
-
-Ao chamar o endpoint `/gemini/chat`, certifique-se de fornecer o `user_id` e, opcionalmente, o `session_id` para garantir que o histórico seja corretamente gerenciado:
-
-```json
-{
-  "message": "Olá, tudo bem?",
-  "user_id": "seu_user_id_aqui",
-  "session_id": "seu_session_id_aqui",
-  "api_key": "sua_chave_api_gemini_aqui"
-}
-```
-
-O `session_id` pode ser gerado no frontend ou no backend, dependendo da sua estratégia de gerenciamento de sessão. Se não for fornecido, um novo `session_id` pode ser gerado ou o último `session_id` do `user_id` pode ser utilizado para continuar a conversa.
 
