@@ -1,0 +1,104 @@
+import os
+import uuid
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+import google.generativeai as genai
+
+from app.services.memory_service import MemoryService
+
+class GeminiAgentService:
+    def __init__(self, api_key: str = None):
+        self.memory_service = MemoryService()
+        
+        # Configurar API key do Gemini
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        if not self.api_key:
+            raise ValueError("API key do Gemini não fornecida")
+        
+        genai.configure(api_key=self.api_key)
+        
+        # Configurar modelo Gemini
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        
+    def process_message(self, user_message: str, user_id: str, session_id: Optional[str] = None, api_key: str = None) -> Dict[str, Any]:
+        """Processar mensagem do usuário com o agente Gemini"""
+        try:
+            # Usar API key fornecida se disponível
+            if api_key:
+                genai.configure(api_key=api_key)
+                model = genai.GenerativeModel('gemini-1.5-flash')
+            else:
+                model = self.model
+            
+            # Gerar session_id se não fornecido
+            if not session_id:
+                session_id = str(uuid.uuid4())
+            
+            # Recuperar histórico de conversa
+            chat_history = self.memory_service.get_conversation_history(user_id, session_id)
+            
+            # Construir contexto da conversa
+            context = self._build_context(chat_history, user_message)
+            
+            # Gerar resposta com Gemini
+            response = model.generate_content(context)
+            
+            # Extrair texto da resposta
+            response_text = response.text if response.text else "Desculpe, não consegui gerar uma resposta."
+            
+            # Salvar a conversa na memória
+            self.memory_service.save_message(
+                user_id=user_id,
+                session_id=session_id,
+                message=user_message,
+                response=response_text,
+                metadata={
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "model": "gemini-1.5-flash"
+                }
+            )
+            
+            return {
+                "message": response_text,
+                "session_id": session_id,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            raise Exception(f"Erro ao processar mensagem com Gemini: {str(e)}")
+    
+    def _build_context(self, chat_history: List[Dict], current_message: str) -> str:
+        """Construir contexto da conversa para o Gemini"""
+        context = "Você é um assistente de IA conversacional amigável e prestativo. "
+        context += "Responda de forma clara, útil e em português brasileiro.\n\n"
+        
+        # Adicionar histórico da conversa
+        if chat_history:
+            context += "Histórico da conversa:\n"
+            for entry in chat_history[-5:]:  # Últimas 5 mensagens
+                if entry.get("type") == "human":
+                    context += f"Usuário: {entry.get('content', '')}\n"
+                elif entry.get("type") == "ai":
+                    context += f"Assistente: {entry.get('content', '')}\n"
+            context += "\n"
+        
+        # Adicionar mensagem atual
+        context += f"Usuário: {current_message}\n"
+        context += "Assistente: "
+        
+        return context
+    
+    def get_memory(self, user_id: str, session_id: Optional[str] = None) -> List[Dict]:
+        """Recuperar memória do agente"""
+        try:
+            return self.memory_service.get_conversation_history(user_id, session_id)
+        except Exception as e:
+            raise Exception(f"Erro ao recuperar memória: {str(e)}")
+    
+    def clear_memory(self, user_id: str, session_id: Optional[str] = None) -> None:
+        """Limpar memória do agente"""
+        try:
+            self.memory_service.clear_conversation_history(user_id, session_id)
+        except Exception as e:
+            raise Exception(f"Erro ao limpar memória: {str(e)}")
+
