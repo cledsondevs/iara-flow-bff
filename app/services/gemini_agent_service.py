@@ -18,7 +18,7 @@ class GeminiAgentService:
         genai.configure(api_key=self.api_key)
         
         # Configurar modelo Gemini
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        self.model = genai.GenerativeModel("gemini-1.5-flash")
         
     def process_message(self, user_message: str, user_id: str, session_id: Optional[str] = None, api_key: str = None) -> Dict[str, Any]:
         """Processar mensagem do usuário com o agente Gemini"""
@@ -26,7 +26,7 @@ class GeminiAgentService:
             # Usar API key fornecida se disponível
             if api_key:
                 genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-1.5-flash')
+                model = genai.GenerativeModel("gemini-1.5-flash")
             else:
                 model = self.model
             
@@ -47,14 +47,14 @@ class GeminiAgentService:
             response_text = response.text if response.text else "Desculpe, não consegui gerar uma resposta."
             
             # Salvar a conversa na memória
-            self.memory_service.save_message(
+            self.memory_service.save_conversation(
                 user_id=user_id,
-                session_id=session_id,
                 message=user_message,
                 response=response_text,
                 metadata={
                     "timestamp": datetime.utcnow().isoformat(),
-                    "model": "gemini-1.5-flash"
+                    "model": "gemini-1.5-flash",
+                    "session_id": session_id
                 }
             )
             
@@ -101,4 +101,6 @@ class GeminiAgentService:
             self.memory_service.clear_conversation_history(user_id, session_id)
         except Exception as e:
             raise Exception(f"Erro ao limpar memória: {str(e)}")
+
+
 
