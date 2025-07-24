@@ -22,7 +22,7 @@ from app.api.routes.dashboard_routes import dashboard_b
 from app.api.routes.chat_routes import chat_bp
 
 
-def create_app(config_name=\'default\'):
+def create_app(config_name='default'):
     """Factory function para criar a aplicação Flask"""
     app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), \'static\'))
     
