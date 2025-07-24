@@ -22,7 +22,7 @@ class LangChainAgentService:
     def __init__(self):
         self.memory_service = MemoryService()
         self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             temperature=0.7,
             openai_api_key=os.getenv("OPENAI_API_KEY")
         )
@@ -85,10 +85,11 @@ Seja proativo e use as ferramentas quando apropriado para fornecer informações
                 session_id = str(uuid.uuid4())
             
             # Recuperar histórico de conversa e converter para formato LangChain
-            history_data = self.memory_service.get_conversation_history(user_id, session_id)
+            history_data = self.memory_service.get_conversation_history(user_id, session_id, limit=20)
             chat_history = []
             
-            for item in history_data:
+            # Reverter a ordem para mostrar do mais antigo para o mais recente
+            for item in reversed(history_data):
                 chat_history.append(HumanMessage(content=item['message']))
                 chat_history.append(AIMessage(content=item['response']))
             
@@ -115,14 +116,19 @@ Seja proativo e use as ferramentas quando apropriado para fornecer informações
                 response=response["output"],
                 metadata={
                     "timestamp": datetime.utcnow().isoformat(),
-                    "tools_used": [tool.name for tool in self.tools if hasattr(tool, 'name')]
+                    "model": "gpt-4.1-mini",
+                    "provider": "langchain",
+                    "tools_used": [tool.name for tool in self.tools if hasattr(tool, 'name')],
+                    "agent_type": "openai_tools_agent"
                 }
             )
             
             return {
                 "message": response["output"],
                 "session_id": session_id,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
+                "model": "gpt-4.1-mini",
+                "provider": "langchain"
             }
             
         except Exception as e:

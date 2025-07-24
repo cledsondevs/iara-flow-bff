@@ -1,74 +1,109 @@
-import os
-import sys
-from dotenv import load_dotenv
+#!/usr/bin/env python3
+import requests
+import json
+import uuid
 
-# Carregar variáveis de ambiente do .env na raiz do projeto
-load_dotenv(dotenv_path="/home/ubuntu/iara-flow-bff/.env")
+# Configurações
+BASE_URL = "http://localhost:5000/api"
+USER_ID = "test_langchain_user_123"
+SESSION_ID = str(uuid.uuid4())
 
-# Adicionar o diretório raiz do projeto ao sys.path
-sys.path.insert(0, "/home/ubuntu/iara-flow-bff")
-
-from src.services.memory_service import MemoryService
-
-def run_test():
-    print("\n--- Iniciando Teste do MemoryService com LangChain ---")
+def test_langchain_memory():
+    """Testar o endpoint do LangChain Agent com memória de longo prazo"""
+    print("=== Teste do LangChain Agent com Memória de Longo Prazo ===")
     
-    # Inicializar o MemoryService
-    try:
-        memory_service = MemoryService()
-        print("✅ MemoryService inicializado com sucesso.")
-    except Exception as e:
-        print(f"❌ Erro ao inicializar MemoryService: {e}")
-        return
-
-    user_id = "test_user_langchain"
-    session_id = "test_session_langchain"
+    # Primeira mensagem
+    print("\n1. Enviando primeira mensagem...")
+    payload1 = {
+        "message": "Olá! Meu nome é Maria e eu trabalho como desenvolvedora Python. Como você está?",
+        "user_id": USER_ID,
+        "session_id": SESSION_ID
+    }
     
-    # Limpar memória do usuário para garantir um teste limpo
-    try:
-        memory_service.clear_user_memory(user_id)
-        print(f"✅ Memória do usuário {user_id} limpa com sucesso.")
-    except Exception as e:
-        print(f"⚠️  Erro ao limpar memória do usuário (pode ser ignorado se a memória estiver vazia): {e}")
+    response1 = requests.post(f"{BASE_URL}/agent/chat", json=payload1)
+    print(f"Status: {response1.status_code}")
+    if response1.status_code == 200:
+        result1 = response1.json()
+        print(f"Resposta: {result1.get('response', 'N/A')}")
+        print(f"Session ID: {result1.get('session_id', 'N/A')}")
+        print(f"Provider: {result1.get('provider', 'N/A')}")
+    else:
+        print(f"Erro: {response1.text}")
+    
+    # Segunda mensagem (testando memória)
+    print("\n2. Enviando segunda mensagem para testar memória...")
+    payload2 = {
+        "message": "Você lembra qual é o meu nome e minha profissão?",
+        "user_id": USER_ID,
+        "session_id": SESSION_ID
+    }
+    
+    response2 = requests.post(f"{BASE_URL}/agent/chat", json=payload2)
+    print(f"Status: {response2.status_code}")
+    if response2.status_code == 200:
+        result2 = response2.json()
+        print(f"Resposta: {result2.get('response', 'N/A')}")
+    else:
+        print(f"Erro: {response2.text}")
+    
+    # Terceira mensagem (usando ferramentas)
+    print("\n3. Enviando terceira mensagem para testar uso de ferramentas...")
+    payload3 = {
+        "message": "Faça uma busca na web sobre as últimas novidades em Python 3.12",
+        "user_id": USER_ID,
+        "session_id": SESSION_ID
+    }
+    
+    response3 = requests.post(f"{BASE_URL}/agent/chat", json=payload3)
+    print(f"Status: {response3.status_code}")
+    if response3.status_code == 200:
+        result3 = response3.json()
+        print(f"Resposta: {result3.get('response', 'N/A')}")
+    else:
+        print(f"Erro: {response3.text}")
+    
+    # Verificar memória
+    print("\n4. Verificando memória da conversa...")
+    memory_response = requests.get(f"{BASE_URL}/agent/memory", params={
+        "user_id": USER_ID,
+        "session_id": SESSION_ID
+    })
+    print(f"Status: {memory_response.status_code}")
+    if memory_response.status_code == 200:
+        memory_data = memory_response.json()
+        print(f"Número de mensagens na memória: {len(memory_data.get('memory', []))}")
+        for i, msg in enumerate(memory_data.get('memory', [])[:3]):  # Mostrar apenas as 3 primeiras
+            print(f"  Mensagem {i+1}: {msg.get('message', 'N/A')[:50]}...")
+            print(f"  Resposta {i+1}: {msg.get('response', 'N/A')[:50]}...")
+    else:
+        print(f"Erro ao recuperar memória: {memory_response.text}")
 
-    # 1. Salvar algumas conversas
-    print("\n--- Salvando conversas ---")
-    conversations_to_save = [
-        ("Qual é a capital da França?", "A capital da França é Paris."),
-        ("Qual é o seu nome?", "Eu sou um modelo de linguagem grande, treinado pelo Google."),
-        ("Pode me falar sobre a Torre Eiffel?", "A Torre Eiffel é um monumento em Paris, França."),
-        ("Qual a cor do céu?", "A cor do céu geralmente é azul durante o dia."),
-        ("Lembre-se que gosto de café forte.", "Entendido, você gosta de café forte.")
-    ]
-
-    for msg, resp in conversations_to_save:
-        try:
-            memory_service.save_message(user_id, session_id, msg, resp)
-            print(f"✅ Conversa salva: \'{msg}\' / \'{resp}\'")
-        except Exception as e:
-            print(f"❌ Erro ao salvar conversa \'{msg}\': {e}")
-
-    # 2. Obter histórico de conversas
-    print("\n--- Obtendo histórico de conversas ---")
-    try:
-        history = memory_service.get_conversation_history(user_id, session_id, limit=3)
-        print(f"✅ Histórico de conversas para '{user_id}':")
-        for h in history:
-            print(f"  - Mensagem: {h['message']}, Resposta: {h['response']}")
-    except Exception as e:
-        print(f"❌ Erro ao obter histórico de conversas: {e}")
-
-    # 3. Obter estatísticas da memória
-    print("\n--- Obtendo estatísticas da memória ---")
-    try:
-        stats = memory_service.get_memory_stats(user_id)
-        print(f"✅ Estatísticas da memória para '{user_id}':")
-        print(f"  - Total de conversas: {stats['total_conversations']}")
-    except Exception as e:
-        print(f"❌ Erro ao obter estatísticas da memória: {e}")
-
-    print("\n--- Teste Concluído ---")
+def test_new_session():
+    """Testar nova sessão para verificar isolamento"""
+    print("\n=== Teste de Nova Sessão (LangChain) ===")
+    
+    new_session_id = str(uuid.uuid4())
+    
+    payload = {
+        "message": "Você lembra qual é o meu nome e profissão?",
+        "user_id": USER_ID,
+        "session_id": new_session_id
+    }
+    
+    response = requests.post(f"{BASE_URL}/agent/chat", json=payload)
+    print(f"Status: {response.status_code}")
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Resposta: {result.get('response', 'N/A')}")
+        print("(Esta resposta deve indicar que o agente não lembra, pois é uma nova sessão)")
+    else:
+        print(f"Erro: {response.text}")
 
 if __name__ == "__main__":
-    run_test()
+    try:
+        test_langchain_memory()
+        test_new_session()
+        print("\n=== Testes do LangChain concluídos ===")
+    except Exception as e:
+        print(f"Erro durante o teste: {e}")
 
