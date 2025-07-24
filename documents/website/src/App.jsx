@@ -1,8 +1,4 @@
-import { useState } from 'react'
-import Sidebar from './components/Sidebar'
-import Overview from './components/sections/Overview'
-import Quickstart from './components/sections/Quickstart'
-import Chat from './components/sections/Chat'
+import Changelog from './components/sections/Changelog'
 import { Moon, Sun } from 'lucide-react'
 import './App.css'
 
@@ -45,6 +41,8 @@ function App() {
         return <div className="max-w-4xl"><h1 className="text-4xl font-bold mb-4">Autenticação</h1><p className="text-muted-foreground">Documentação em desenvolvimento...</p></div>
       case 'errors':
         return <div className="max-w-4xl"><h1 className="text-4xl font-bold mb-4">Tratamento de Erros</h1><p className="text-muted-foreground">Documentação em desenvolvimento...</p></div>
+      case 'changelog':
+        return <Changelog />
       default:
         return <Overview />
     }
