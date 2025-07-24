@@ -504,3 +504,5 @@ Esta funcionalidade oferece flexibilidade para gerenciar a memória do agente de
 O `session_id` pode ser gerado no frontend ou no backend, dependendo da sua estratégia de gerenciamento de sessão. Se não for fornecido, um novo `session_id` pode ser gerado ou o último `session_id` do `user_id` pode ser utilizado para continuar a conversa.
 
 ```
+
+
