@@ -18,8 +18,9 @@ from app.api.routes.gemini_agent_routes import gemini_agent_bp
 from app.api.routes.openai_agent_routes import openai_agent_bp
 from app.api.routes.review_agent_routes import review_agent_bp
 from app.api.routes.data_analysis_routes import data_analysis_bp
-from app.api.routes.dashboard_routes import dashboard_bp
-from src.routes.chat_routes import chat_bp
+from app.api.routes.dashboard_routes import dashboard_b
+from app.api.routes.chat_routes import chat_bp
+
 
 def create_app(config_name=\'default\'):
     """Factory function para criar a aplicação Flask"""
@@ -40,7 +41,7 @@ def create_app(config_name=\'default\'):
     
     # Inicializar MemoryService para garantir que as tabelas sejam criadas
     try:
-        from src.services.memory_service import MemoryService
+        from app.services.memory_service import MemoryService
         memory_service = MemoryService()
         print("MemoryService inicializado com sucesso")
     except Exception as e:
