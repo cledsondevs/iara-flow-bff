@@ -1,3 +1,4 @@
+
 """
 Aplicação principal do Iara Flow BFF
 """
@@ -17,18 +18,19 @@ from app.api.routes.gemini_agent_routes import gemini_agent_bp
 from app.api.routes.openai_agent_routes import openai_agent_bp
 from app.api.routes.review_agent_routes import review_agent_bp
 from app.api.routes.data_analysis_routes import data_analysis_bp
-from app.api.routes.dashboard_routes import dashboard_bp
+from app.api.routes.dashboard_routes import dashboard_b
 from app.api.routes.chat_routes import chat_bp
 
-def create_app(config_name='default'):
+
+def create_app(config_name=\'default\'):
     """Factory function para criar a aplicação Flask"""
-    app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
+    app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), \'static\'))
     
     # Carregar configurações
     app.config.from_object(config[config_name])
     
     # Configurar CORS
-    CORS(app, origins=app.config['CORS_ORIGINS'])
+    CORS(app, origins=app.config[\'CORS_ORIGINS\'])
     
     # Inicializar banco de dados
     try:
@@ -69,9 +71,9 @@ def create_app(config_name='default'):
         if path != "" and os.path.exists(os.path.join(static_folder_path, path)):
             return send_from_directory(static_folder_path, path)
         else:
-            index_path = os.path.join(static_folder_path, 'index.html')
+            index_path = os.path.join(static_folder_path, \'index.html\')
             if os.path.exists(index_path):
-                return send_from_directory(static_folder_path, 'index.html')
+                return send_from_directory(static_folder_path, \'index.html\')
             else:
                 return "index.html not found", 404
     
