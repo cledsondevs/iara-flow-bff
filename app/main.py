@@ -1,3 +1,4 @@
+
 """
 Aplicação principal do Iara Flow BFF
 """
@@ -18,16 +19,17 @@ from app.api.routes.openai_agent_routes import openai_agent_bp
 from app.api.routes.review_agent_routes import review_agent_bp
 from app.api.routes.data_analysis_routes import data_analysis_bp
 from app.api.routes.dashboard_routes import dashboard_bp
+from src.routes.chat_routes import chat_bp
 
-def create_app(config_name='default'):
+def create_app(config_name=\'default\'):
     """Factory function para criar a aplicação Flask"""
-    app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
+    app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), \'static\'))
     
     # Carregar configurações
     app.config.from_object(config[config_name])
     
     # Configurar CORS
-    CORS(app, origins=app.config['CORS_ORIGINS'])
+    CORS(app, origins=app.config[\'CORS_ORIGINS\'])
     
     # Inicializar banco de dados
     try:
@@ -35,6 +37,14 @@ def create_app(config_name='default'):
         print("Banco de dados inicializado com sucesso")
     except Exception as e:
         print(f"Erro ao inicializar banco de dados: {e}")
+    
+    # Inicializar MemoryService para garantir que as tabelas sejam criadas
+    try:
+        from src.services.memory_service import MemoryService
+        memory_service = MemoryService()
+        print("MemoryService inicializado com sucesso")
+    except Exception as e:
+        print(f"Erro ao inicializar MemoryService: {e}")
     
     # Registrar blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -44,6 +54,7 @@ def create_app(config_name='default'):
     app.register_blueprint(review_agent_bp)
     app.register_blueprint(data_analysis_bp, url_prefix="/api")
     app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
+    app.register_blueprint(chat_bp, url_prefix="/api")
 
     @app.route("/")
     def health_check():
@@ -59,9 +70,9 @@ def create_app(config_name='default'):
         if path != "" and os.path.exists(os.path.join(static_folder_path, path)):
             return send_from_directory(static_folder_path, path)
         else:
-            index_path = os.path.join(static_folder_path, 'index.html')
+            index_path = os.path.join(static_folder_path, \'index.html\')
             if os.path.exists(index_path):
-                return send_from_directory(static_folder_path, 'index.html')
+                return send_from_directory(static_folder_path, \'index.html\')
             else:
                 return "index.html not found", 404
     
