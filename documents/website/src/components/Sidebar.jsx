@@ -64,6 +64,12 @@ const Sidebar = ({ activeSection, onSectionChange }) => {
       title: 'Histórico de Mudanças',
       icon: Settings,
       type: 'item'
+    },
+    {
+      id: 'api-reference',
+      title: 'API Reference',
+      icon: Book,
+      type: 'item'
     }
   ]
 
