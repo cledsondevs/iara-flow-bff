@@ -30,8 +30,11 @@ class GeminiChatService:
             # Recuperar histórico de conversa
             history_data = self.memory_service.get_conversation_history(user_id, session_id, limit=20)
             
+            # Recuperar contexto global do usuário
+            user_context = self.memory_service.get_user_context_for_chat(user_id)
+            
             # Construir contexto da conversa
-            conversation_context = self._build_conversation_context(history_data, user_message)
+            conversation_context = self._build_conversation_context(history_data, user_message, user_context)
             
             # Gerar resposta com o Gemini
             response = self.model.generate_content(conversation_context)
@@ -39,8 +42,8 @@ class GeminiChatService:
             if not response.text:
                 raise Exception("Gemini não retornou uma resposta válida")
             
-            # Salvar a conversa na memória
-            self.memory_service.save_message(
+            # Salvar a conversa na memória com atualização de perfil
+            self.memory_service.save_message_with_profile_update(
                 user_id=user_id,
                 session_id=session_id,
                 message=user_message,
@@ -62,9 +65,13 @@ class GeminiChatService:
         except Exception as e:
             raise Exception(f"Erro ao processar mensagem com Gemini: {str(e)}")
     
-    def _build_conversation_context(self, history_data: List[Dict], current_message: str) -> str:
+    def _build_conversation_context(self, history_data: List[Dict], current_message: str, user_context: str = "") -> str:
         """Construir contexto da conversa para o Gemini"""
         context = "Você é um assistente de IA útil e inteligente. Mantenha o contexto da conversa anterior.\n\n"
+        
+        # Adicionar contexto do usuário se disponível
+        if user_context:
+            context += f"{user_context}\n\n"
         
         # Adicionar histórico (em ordem cronológica)
         if history_data:

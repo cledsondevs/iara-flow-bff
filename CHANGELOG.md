@@ -30,6 +30,13 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Suporte a múltiplos modelos Groq (llama3-8b-8192, llama3-70b-8192, mixtral-8x7b-32768, gemma-7b-it)
   - Integração completa com sistema de memória unificado
 
+- **Memória Global por Usuário**: Sistema de perfil persistente que transcende sessões individuais
+  - Nova tabela `user_profiles` para armazenar informações globais do usuário
+  - Extração automática de informações pessoais das mensagens (nome, profissão, idade)
+  - Contexto do usuário incluído automaticamente em todas as conversas
+  - Funciona em todos os provedores: Gemini, OpenAI, Groq e LangChain
+  - Permite que o assistente "lembre" do usuário mesmo em sessões diferentes
+
 ### Changed
 - Estrutura do projeto expandida com novos serviços de chat
 - **LangChain Agent Service**: Refatorado para usar memória persistente ao invés de memória em tempo de execução
@@ -38,6 +45,11 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Ordem cronológica corrigida para manter contexto adequado
 - **Sistema de Chat**: Expandido para suportar quatro provedores de IA (Gemini, OpenAI, Groq, LangChain)
 - **Endpoint de Health Check**: Atualizado para incluir todos os serviços disponíveis
+- **MemoryService**: Expandido com funcionalidades de perfil global por usuário
+  - Método `save_message_with_profile_update()` para extração automática de informações
+  - Método `get_user_context_for_chat()` para incluir contexto em conversas
+  - Método `extract_user_info_from_message()` para análise de mensagens
+- **Todos os Serviços de Chat**: Atualizados para usar memória global por usuário
 - Sistema de memória aprimorado para suportar múltiplos provedores de IA
 
 ### Technical Details
@@ -49,10 +61,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `test_gemini_chat.py` - Script de teste para validação do chat Gemini
   - `test_langchain_memory.py` - Script de teste para validação da memória do LangChain
   - `test_groq_chat.py` - Script de teste para validação do chat Groq
+  - `test_global_memory.py` - Script de teste para validação da memória global por usuário
   - `README_MEMORY_IMPLEMENTATION.md` - Documentação técnica da implementação
 
 - **Arquivos modificados**:
-  - `src/services/langchain_agent_service.py` - Integração com memória de longo prazo
+  - `src/services/memory_service.py` - Adicionada funcionalidade de perfil global por usuário
+  - `src/services/langchain_agent_service.py` - Integração com memória de longo prazo e global
+  - `src/services/gemini_chat_service.py` - Integração com memória global por usuário
+  - `src/services/openai_chat_service.py` - Integração com memória global por usuário
+  - `src/services/groq_chat_service.py` - Integração com memória global por usuário
   - `src/main.py` - Registro das novas rotas de chat
   - `.env` - Configuração das chaves de API
 
@@ -70,6 +87,9 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Suporte a diferentes modelos OpenAI e Groq via parâmetro opcional
   - Integração transparente do LangChain com ferramentas e memória persistente
   - Endpoint para listar modelos disponíveis do Groq
+  - **Memória global por usuário**: Perfil persistente que transcende sessões
+  - **Extração automática**: Detecção de nome, profissão e idade nas mensagens
+  - **Contexto inteligente**: Informações do usuário incluídas automaticamente em conversas
 
 ### Notes
 - O sistema mantém compatibilidade com a estrutura existente do projeto
@@ -78,6 +98,11 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - O histórico é limitado às últimas 20 interações por sessão para otimização de performance
 - **LangChain Agent**: Mantém todas as funcionalidades originais (ferramentas, busca web, operações de arquivo) com memória persistente
 - **Groq**: Oferece modelos rápidos e eficientes, incluindo Llama 3 e Mixtral
+- **Memória Global**: Permite que o assistente "lembre" do usuário mesmo em diferentes sessões
+  - Funciona automaticamente: quando o usuário diz seu nome, é salvo no perfil
+  - Contexto é incluído em todas as conversas futuras daquele `user_id`
+  - Informações persistem mesmo após reinicialização do servidor
 - Todos os quatro provedores (Gemini, OpenAI, Groq, LangChain) agora compartilham o mesmo sistema de memória unificado
 - Sistema escalável para adição de novos provedores de IA no futuro
+- **Exemplo de uso**: Se João diz "Meu nome é João" em uma sessão, em qualquer sessão futura o assistente saberá que está falando com João
 

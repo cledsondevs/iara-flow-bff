@@ -31,8 +31,11 @@ class GroqChatService:
             # Recuperar histórico de conversa
             history_data = self.memory_service.get_conversation_history(user_id, session_id, limit=20)
             
+            # Recuperar contexto global do usuário
+            user_context = self.memory_service.get_user_context_for_chat(user_id)
+            
             # Construir mensagens para o Groq
-            messages = self._build_messages(history_data, user_message)
+            messages = self._build_messages(history_data, user_message, user_context)
             
             # Gerar resposta com o Groq
             response = self.client.chat.completions.create(
@@ -47,8 +50,8 @@ class GroqChatService:
             
             assistant_response = response.choices[0].message.content
             
-            # Salvar a conversa na memória
-            self.memory_service.save_message(
+            # Salvar a conversa na memória com atualização de perfil
+            self.memory_service.save_message_with_profile_update(
                 user_id=user_id,
                 session_id=session_id,
                 message=user_message,
@@ -80,12 +83,16 @@ class GroqChatService:
         except Exception as e:
             raise Exception(f"Erro ao processar mensagem com Groq: {str(e)}")
     
-    def _build_messages(self, history_data: List[Dict], current_message: str) -> List[Dict]:
+    def _build_messages(self, history_data: List[Dict], current_message: str, user_context: str = "") -> List[Dict]:
         """Construir mensagens para o Groq Chat API"""
+        system_content = "Você é um assistente de IA útil e inteligente. Mantenha o contexto da conversa anterior e forneça respostas precisas e úteis."
+        if user_context:
+            system_content += f" {user_context}"
+        
         messages = [
             {
                 "role": "system",
-                "content": "Você é um assistente de IA útil e inteligente. Mantenha o contexto da conversa anterior e forneça respostas precisas e úteis."
+                "content": system_content
             }
         ]
         
