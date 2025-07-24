@@ -12,6 +12,7 @@ from flask import Flask, send_from_directory
 from flask_cors import CORS
 from src.routes.agent_routes import agent_bp
 from src.routes.review_agent_routes import review_agent_bp
+from src.routes.chat_routes import chat_bp
 from src.services.memory_service import MemoryService
 
 def create_app():
@@ -31,6 +32,7 @@ def create_app():
     # Registrar blueprints
     app.register_blueprint(agent_bp, url_prefix="/api")
     app.register_blueprint(review_agent_bp)
+    app.register_blueprint(chat_bp, url_prefix="/api")
     
     @app.route('/<path:path>')
     def serve(path):
