@@ -27,6 +27,9 @@ class GeminiChatService:
             if not session_id:
                 session_id = str(uuid.uuid4())
             
+            # Detectar e processar comando "Lembre-se disso"
+            processed_message, fact_saved = self.memory_service.detect_and_save_user_fact(user_message, user_id)
+            
             # Recuperar histórico de conversa
             history_data = self.memory_service.get_conversation_history(user_id, session_id, limit=20)
             
@@ -34,7 +37,7 @@ class GeminiChatService:
             user_context = self.memory_service.get_user_context_for_chat(user_id)
             
             # Construir contexto da conversa
-            conversation_context = self._build_conversation_context(history_data, user_message, user_context)
+            conversation_context = self._build_conversation_context(history_data, processed_message, user_context)
             
             # Gerar resposta com o Gemini
             response = self.model.generate_content(conversation_context)
@@ -42,24 +45,31 @@ class GeminiChatService:
             if not response.text:
                 raise Exception("Gemini não retornou uma resposta válida")
             
+            # Se um fato foi salvo, mencionar isso na resposta
+            final_response = response.text
+            if fact_saved:
+                final_response = f"✅ Informação salva na memória! {response.text}"
+            
             # Salvar a conversa na memória com atualização de perfil
             self.memory_service.save_message_with_profile_update(
                 user_id=user_id,
                 session_id=session_id,
-                message=user_message,
-                response=response.text,
+                message=user_message,  # Salvar mensagem original
+                response=final_response,
                 metadata={
                     "timestamp": datetime.utcnow().isoformat(),
                     "model": "gemini-1.5-flash",
-                    "provider": "google"
+                    "provider": "google",
+                    "fact_saved": fact_saved
                 }
             )
             
             return {
-                "message": response.text,
+                "message": final_response,
                 "session_id": session_id,
                 "timestamp": datetime.utcnow().isoformat(),
-                "model": "gemini-1.5-flash"
+                "model": "gemini-1.5-flash",
+                "fact_saved": fact_saved
             }
             
         except Exception as e:

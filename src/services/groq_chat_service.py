@@ -28,6 +28,9 @@ class GroqChatService:
             # Usar modelo especificado ou padrão
             selected_model = model or self.model
             
+            # Detectar e processar comando "Lembre-se disso"
+            processed_message, fact_saved = self.memory_service.detect_and_save_user_fact(user_message, user_id)
+            
             # Recuperar histórico de conversa
             history_data = self.memory_service.get_conversation_history(user_id, session_id, limit=20)
             
@@ -35,7 +38,7 @@ class GroqChatService:
             user_context = self.memory_service.get_user_context_for_chat(user_id)
             
             # Construir mensagens para o Groq
-            messages = self._build_messages(history_data, user_message, user_context)
+            messages = self._build_messages(history_data, processed_message, user_context)
             
             # Gerar resposta com o Groq
             response = self.client.chat.completions.create(
@@ -50,16 +53,22 @@ class GroqChatService:
             
             assistant_response = response.choices[0].message.content
             
+            # Se um fato foi salvo, mencionar isso na resposta
+            final_response = assistant_response
+            if fact_saved:
+                final_response = f"✅ Informação salva na memória! {assistant_response}"
+            
             # Salvar a conversa na memória com atualização de perfil
             self.memory_service.save_message_with_profile_update(
                 user_id=user_id,
                 session_id=session_id,
-                message=user_message,
-                response=assistant_response,
+                message=user_message,  # Salvar mensagem original
+                response=final_response,
                 metadata={
                     "timestamp": datetime.utcnow().isoformat(),
                     "model": selected_model,
                     "provider": "groq",
+                    "fact_saved": fact_saved,
                     "usage": {
                         "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
                         "completion_tokens": response.usage.completion_tokens if response.usage else 0,
@@ -69,10 +78,11 @@ class GroqChatService:
             )
             
             return {
-                "message": assistant_response,
+                "message": final_response,
                 "session_id": session_id,
                 "timestamp": datetime.utcnow().isoformat(),
                 "model": selected_model,
+                "fact_saved": fact_saved,
                 "usage": {
                     "prompt_tokens": response.usage.prompt_tokens if response.usage else 0,
                     "completion_tokens": response.usage.completion_tokens if response.usage else 0,

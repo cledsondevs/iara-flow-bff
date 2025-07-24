@@ -274,6 +274,11 @@ class MemoryService:
             if "mentioned_age" in profile_data:
                 context_parts.append("O usuário mencionou sua idade anteriormente")
             
+            # Adicionar fatos específicos salvos pelo usuário
+            if "user_facts" in profile_data and profile_data["user_facts"]:
+                facts_text = "; ".join(profile_data["user_facts"])
+                context_parts.append(f"Fatos importantes sobre o usuário: {facts_text}")
+            
             if context_parts:
                 return "Informações sobre o usuário: " + "; ".join(context_parts) + "."
             
@@ -282,6 +287,100 @@ class MemoryService:
         except Exception as e:
             # Se houver erro, retornar string vazia para não quebrar o chat
             return ""
+    
+    def save_user_fact(self, user_id: str, fact: str):
+        """Salvar um fato específico sobre o usuário"""
+        try:
+            # Recuperar perfil atual
+            profile = self.get_user_profile(user_id)
+            profile_data = profile["profile_data"].copy()
+            
+            # Inicializar lista de fatos se não existir
+            if "user_facts" not in profile_data:
+                profile_data["user_facts"] = []
+            
+            # Adicionar o novo fato (evitar duplicatas)
+            if fact not in profile_data["user_facts"]:
+                profile_data["user_facts"].append(fact)
+                
+                # Limitar a 10 fatos para evitar contexto muito longo
+                if len(profile_data["user_facts"]) > 10:
+                    profile_data["user_facts"] = profile_data["user_facts"][-10:]
+                
+                # Atualizar perfil
+                self.update_user_profile(user_id, profile_data)
+                
+        except Exception as e:
+            raise Exception(f"Erro ao salvar fato do usuário: {str(e)}")
+    
+    def detect_and_save_user_fact(self, user_message: str, user_id: str) -> tuple[str, bool]:
+        """Detectar se o usuário quer salvar um fato e extraí-lo"""
+        try:
+            # Palavras-chave que indicam que o usuário quer salvar algo
+            trigger_phrases = [
+                "lembre-se disso:",
+                "lembre se disso:",
+                "salvar para depois:",
+                "minha memória:",
+                "lembrar:",
+                "não esqueça:",
+                "importante:",
+                "anotar:"
+            ]
+            
+            message_lower = user_message.lower()
+            
+            for phrase in trigger_phrases:
+                if phrase in message_lower:
+                    # Encontrar o índice onde começa o fato
+                    start_index = message_lower.find(phrase) + len(phrase)
+                    
+                    # Extrair o fato (tudo que vem depois da frase-gatilho)
+                    fact = user_message[start_index:].strip()
+                    
+                    if fact:  # Se há conteúdo para salvar
+                        # Salvar o fato
+                        self.save_user_fact(user_id, fact)
+                        
+                        # Remover a instrução da mensagem original
+                        cleaned_message = user_message[:message_lower.find(phrase)].strip()
+                        if not cleaned_message:
+                            cleaned_message = f"Entendi! Vou lembrar que {fact}"
+                        
+                        return cleaned_message, True
+            
+            return user_message, False
+            
+        except Exception as e:
+            # Em caso de erro, retornar mensagem original
+            return user_message, False
+    
+    def get_user_facts(self, user_id: str) -> list:
+        """Recuperar todos os fatos salvos sobre o usuário"""
+        try:
+            profile = self.get_user_profile(user_id)
+            profile_data = profile["profile_data"]
+            
+            return profile_data.get("user_facts", [])
+            
+        except Exception as e:
+            return []
+    
+    def remove_user_fact(self, user_id: str, fact_index: int) -> bool:
+        """Remover um fato específico do usuário pelo índice"""
+        try:
+            profile = self.get_user_profile(user_id)
+            profile_data = profile["profile_data"].copy()
+            
+            if "user_facts" in profile_data and 0 <= fact_index < len(profile_data["user_facts"]):
+                removed_fact = profile_data["user_facts"].pop(fact_index)
+                self.update_user_profile(user_id, profile_data)
+                return True
+            
+            return False
+            
+        except Exception as e:
+            return False
 
 
 # Instância global do serviço

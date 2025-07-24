@@ -87,6 +87,9 @@ Seja proativo e use as ferramentas quando apropriado para fornecer informações
             if not session_id:
                 session_id = str(uuid.uuid4())
             
+            # Detectar e processar comando "Lembre-se disso"
+            processed_message, fact_saved = self.memory_service.detect_and_save_user_fact(user_message, user_id)
+            
             # Recuperar contexto global do usuário
             user_context = self.memory_service.get_user_context_for_chat(user_id)
             
@@ -116,31 +119,38 @@ Seja proativo e use as ferramentas quando apropriado para fornecer informações
             
             # Executar o agente
             response = agent_executor.invoke({
-                "input": user_message,
+                "input": processed_message,
                 "chat_history": chat_history
             })
+            
+            # Se um fato foi salvo, mencionar isso na resposta
+            final_response = response["output"]
+            if fact_saved:
+                final_response = f"✅ Informação salva na memória! {response['output']}"
             
             # Salvar a conversa na memória com atualização de perfil
             self.memory_service.save_message_with_profile_update(
                 user_id=user_id,
                 session_id=session_id,
-                message=user_message,
-                response=response["output"],
+                message=user_message,  # Salvar mensagem original
+                response=final_response,
                 metadata={
                     "timestamp": datetime.utcnow().isoformat(),
-                    "model": "gpt-4.1-mini",
+                    "model": "gpt-4o-mini",
                     "provider": "langchain",
-                    "tools_used": [tool.name for tool in self.tools if hasattr(tool, 'name')],
-                    "agent_type": "openai_tools_agent"
+                    "fact_saved": fact_saved,
+                    "tools_used": response.get("intermediate_steps", []),
+                    "agent_type": "openai_tools"
                 }
             )
             
             return {
-                "message": response["output"],
+                "message": final_response,
                 "session_id": session_id,
                 "timestamp": datetime.utcnow().isoformat(),
-                "model": "gpt-4.1-mini",
-                "provider": "langchain"
+                "model": "gpt-4o-mini",
+                "fact_saved": fact_saved,
+                "tools_used": len(response.get("intermediate_steps", []))
             }
             
         except Exception as e:

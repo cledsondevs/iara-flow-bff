@@ -37,19 +37,34 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Funciona em todos os provedores: Gemini, OpenAI, Groq e LangChain
   - Permite que o assistente "lembre" do usuário mesmo em sessões diferentes
 
+- **Funcionalidade "Lembre-se disso"**: Sistema de salvamento explícito de informações pelo usuário
+  - Palavras-chave para salvar fatos: "lembre-se disso:", "importante:", "salvar para depois:", "não esqueça:", "anotar:", "lembrar:"
+  - Detecção automática e extração de fatos das mensagens do usuário
+  - Fatos salvos são incluídos automaticamente no contexto de futuras conversas
+  - Funciona em todos os provedores de IA (Gemini, OpenAI, Groq, LangChain)
+  - Limite de 10 fatos por usuário para otimização de performance
+  - Confirmação visual quando um fato é salvo (✅ Informação salva na memória!)
+
 ### Changed
 - Estrutura do projeto expandida com novos serviços de chat
 - **LangChain Agent Service**: Refatorado para usar memória persistente ao invés de memória em tempo de execução
-  - Modelo atualizado para `gpt-4.1-mini` (compatibilidade com API)
+  - Modelo atualizado para `gpt-4o-mini` (compatibilidade com API)
   - Histórico de conversa limitado a 20 mensagens para otimização
   - Ordem cronológica corrigida para manter contexto adequado
 - **Sistema de Chat**: Expandido para suportar quatro provedores de IA (Gemini, OpenAI, Groq, LangChain)
 - **Endpoint de Health Check**: Atualizado para incluir todos os serviços disponíveis
-- **MemoryService**: Expandido com funcionalidades de perfil global por usuário
+- **MemoryService**: Expandido com funcionalidades de perfil global por usuário e salvamento explícito
   - Método `save_message_with_profile_update()` para extração automática de informações
   - Método `get_user_context_for_chat()` para incluir contexto em conversas
   - Método `extract_user_info_from_message()` para análise de mensagens
-- **Todos os Serviços de Chat**: Atualizados para usar memória global por usuário
+  - Método `detect_and_save_user_fact()` para processamento de comandos "Lembre-se disso"
+  - Método `save_user_fact()` para salvamento de fatos específicos
+  - Método `get_user_facts()` para recuperação de fatos salvos
+  - Método `remove_user_fact()` para remoção de fatos específicos
+- **Todos os Serviços de Chat**: Atualizados para usar memória global por usuário e funcionalidade "Lembre-se disso"
+  - Processamento automático de palavras-chave para salvamento de fatos
+  - Confirmação visual quando informações são salvas
+  - Metadados aprimorados incluindo flag `fact_saved`
 - Sistema de memória aprimorado para suportar múltiplos provedores de IA
 
 ### Technical Details
@@ -62,14 +77,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `test_langchain_memory.py` - Script de teste para validação da memória do LangChain
   - `test_groq_chat.py` - Script de teste para validação do chat Groq
   - `test_global_memory.py` - Script de teste para validação da memória global por usuário
+  - `test_remember_this.py` - Script de teste para validação da funcionalidade "Lembre-se disso"
   - `README_MEMORY_IMPLEMENTATION.md` - Documentação técnica da implementação
 
 - **Arquivos modificados**:
-  - `src/services/memory_service.py` - Adicionada funcionalidade de perfil global por usuário
-  - `src/services/langchain_agent_service.py` - Integração com memória de longo prazo e global
-  - `src/services/gemini_chat_service.py` - Integração com memória global por usuário
-  - `src/services/openai_chat_service.py` - Integração com memória global por usuário
-  - `src/services/groq_chat_service.py` - Integração com memória global por usuário
+  - `src/services/memory_service.py` - Adicionada funcionalidade de perfil global por usuário e "Lembre-se disso"
+  - `src/services/langchain_agent_service.py` - Integração com memória de longo prazo, global e "Lembre-se disso"
+  - `src/services/gemini_chat_service.py` - Integração com memória global por usuário e "Lembre-se disso"
+  - `src/services/openai_chat_service.py` - Integração com memória global por usuário e "Lembre-se disso"
+  - `src/services/groq_chat_service.py` - Integração com memória global por usuário e "Lembre-se disso"
   - `src/main.py` - Registro das novas rotas de chat
   - `.env` - Configuração das chaves de API
 
@@ -90,6 +106,10 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - **Memória global por usuário**: Perfil persistente que transcende sessões
   - **Extração automática**: Detecção de nome, profissão e idade nas mensagens
   - **Contexto inteligente**: Informações do usuário incluídas automaticamente em conversas
+  - **Sistema "Lembre-se disso"**: Salvamento explícito de fatos pelo usuário
+  - **Palavras-chave inteligentes**: Detecção automática de comandos de salvamento
+  - **Confirmação visual**: Feedback imediato quando informações são salvas
+  - **Gestão de fatos**: Limite automático e prevenção de duplicatas
 
 ### Notes
 - O sistema mantém compatibilidade com a estrutura existente do projeto
@@ -102,7 +122,14 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - Funciona automaticamente: quando o usuário diz seu nome, é salvo no perfil
   - Contexto é incluído em todas as conversas futuras daquele `user_id`
   - Informações persistem mesmo após reinicialização do servidor
+- **Sistema "Lembre-se disso"**: Controle total do usuário sobre o que é salvo
+  - Palavras-chave: "lembre-se disso:", "importante:", "salvar para depois:", "não esqueça:", "anotar:", "lembrar:"
+  - Funciona em qualquer provedor (Gemini, OpenAI, Groq, LangChain)
+  - Fatos são incluídos automaticamente em futuras conversas
+  - Exemplo: "lembre-se disso: eu andei de bicicleta no sábado" → salvo permanentemente
 - Todos os quatro provedores (Gemini, OpenAI, Groq, LangChain) agora compartilham o mesmo sistema de memória unificado
 - Sistema escalável para adição de novos provedores de IA no futuro
-- **Exemplo de uso**: Se João diz "Meu nome é João" em uma sessão, em qualquer sessão futura o assistente saberá que está falando com João
+- **Exemplo de uso completo**: 
+  - Sessão 1: "Meu nome é João" + "lembre-se disso: gosto de café"
+  - Sessão 2 (semana depois): Assistente sabe que é João e que ele gosta de café
 
