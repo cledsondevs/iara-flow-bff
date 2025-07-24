@@ -71,9 +71,9 @@ def create_app(config_name='default'):
         if path != "" and os.path.exists(os.path.join(static_folder_path, path)):
             return send_from_directory(static_folder_path, path)
         else:
-            index_path = os.path.join(static_folder_path, \'index.html\')
+            index_path = os.path.join(static_folder_path, 'index.html')
             if os.path.exists(index_path):
-                return send_from_directory(static_folder_path, \'index.html\')
+                return send_from_directory(static_folder_path, 'index.html')
             else:
                 return "index.html not found", 404
     
