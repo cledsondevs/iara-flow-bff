@@ -58,6 +58,18 @@ const Sidebar = ({ activeSection, onSectionChange }) => {
         { id: 'dashboard', title: 'Dashboard' },
         { id: 'reports', title: 'Relatórios' }
       ]
+    },
+    {
+      id: 'changelog',
+      title: 'Histórico de Mudanças',
+      icon: Settings,
+      type: 'item'
+    },
+    {
+      id: 'api-reference',
+      title: 'API Reference',
+      icon: Book,
+      type: 'item'
     }
   ]
 
