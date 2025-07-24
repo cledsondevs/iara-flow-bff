@@ -39,7 +39,7 @@ def create_app(config_name='default'):
     # Registrar blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(agent_bp, url_prefix="/api")
-    app.register_blueprint(gemini_agent_bp, url_prefix="/api/gemini")
+    app.register_blueprint(gemini_agent_bp, url_prefix="/api")
     app.register_blueprint(openai_agent_bp, url_prefix="/api/openai")
     app.register_blueprint(review_agent_bp)
     app.register_blueprint(data_analysis_bp, url_prefix="/api")
