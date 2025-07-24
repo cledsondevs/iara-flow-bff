@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar'
 import Overview from './components/sections/Overview'
 import Quickstart from './components/sections/Quickstart'
 import Chat from './components/sections/Chat'
+import Frontend from './components/sections/Frontend'
 import { Moon, Sun } from 'lucide-react'
 import './App.css'
 
@@ -21,6 +22,8 @@ function App() {
         return <Overview />
       case 'quickstart':
         return <Quickstart />
+      case 'frontend':
+        return <Frontend />
       case 'chat':
         return <Chat />
       case 'memory':

@@ -34,6 +34,12 @@ const Sidebar = ({ activeSection, onSectionChange }) => {
       ]
     },
     {
+      id: 'frontend',
+      title: 'Frontend',
+      icon: Settings,
+      type: 'item'
+    },
+    {
       id: 'agent-api',
       title: 'API do Agente de IA',
       icon: MessageSquare,

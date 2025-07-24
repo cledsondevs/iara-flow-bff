@@ -679,3 +679,70 @@ A API Iara Flow BFF oferece um conjunto abrangente de funcionalidades para integ
 **Data:** 24 de julho de 2025
 
 
+
+
+
+## Documentação do Frontend: Iara Flow Prototyper
+
+O Iara Flow Prototyper é a aplicação frontend que interage com a API Iara Flow BFF. Ele é construído utilizando React, TypeScript e Vite, com um foco em modularidade e componentes reutilizáveis, utilizando a biblioteca de componentes Shadcn UI e Tailwind CSS para estilização.
+
+### Visão Geral
+
+O frontend oferece uma interface intuitiva para os usuários interagirem com os agentes de IA, visualizarem dashboards de análise de reviews e gerenciarem fluxos de trabalho. Ele é projetado para ser responsivo e oferecer uma experiência de usuário fluida em diferentes dispositivos.
+
+### Tecnologias Utilizadas
+
+*   **React:** Biblioteca JavaScript para construção de interfaces de usuário.
+*   **TypeScript:** Superset do JavaScript que adiciona tipagem estática.
+*   **Vite:** Ferramenta de build rápida para projetos web modernos.
+*   **Shadcn UI:** Coleção de componentes de UI reutilizáveis e acessíveis.
+*   **Tailwind CSS:** Framework CSS utilitário para estilização rápida e eficiente.
+*   **React Router DOM:** Para gerenciamento de rotas na aplicação.
+*   **React Query:** Para gerenciamento de estado assíncrono e cache de dados.
+*   **Supabase:** Para autenticação e possivelmente outras funcionalidades de backend (embora a API BFF seja o foco principal).
+*   **Lucide React:** Biblioteca de ícones.
+*   **Recharts:** Biblioteca para criação de gráficos e visualizações de dados.
+
+### Estrutura do Projeto
+
+A estrutura do projeto segue as convenções de aplicações React modernas, com componentes organizados por funcionalidade e páginas para cada rota principal. Os principais diretórios incluem:
+
+*   `src/components/`: Contém os componentes reutilizáveis da UI e componentes específicos de cada seção.
+*   `src/pages/`: Define as diferentes páginas da aplicação, como a landing page, o prototyper e o dashboard.
+*   `src/assets/`: Armazena recursos estáticos como imagens.
+*   `src/lib/`: Funções utilitárias e configurações.
+
+### Rotas Principais
+
+O frontend utiliza `react-router-dom` para gerenciar a navegação. As rotas principais identificadas são:
+
+*   `/`: **Landing Page** - A página inicial da aplicação, apresentando as funcionalidades e benefícios do Iara Flow.
+*   `/prototyper`: **Prototyper** - A interface principal onde os usuários podem interagir com os agentes de IA e gerenciar seus fluxos de trabalho. Esta rota é protegida e requer autenticação.
+*   `/dashboard/:customUrl`: **Dashboard** - Uma rota dinâmica para exibir dashboards específicos, possivelmente relacionados à análise de reviews ou outras métricas. O `:customUrl` permite a personalização do dashboard.
+*   `/auth`: **Autenticação** - Página dedicada ao processo de login e registro de usuários.
+*   `*`: **Not Found** - Uma rota catch-all para lidar com URLs não encontradas.
+
+### Interação com a API Iara Flow BFF
+
+O frontend se comunica com a API Iara Flow BFF para realizar operações como:
+
+*   Enviar mensagens para o agente de chat.
+*   Gerenciar a memória das conversas.
+*   Solicitar análises de reviews e relatórios.
+*   Controlar o modo autônomo do agente de reviews.
+
+As requisições são feitas utilizando `fetch` ou bibliotecas HTTP como `axios` (se instalada), e os dados são gerenciados com `react-query` para otimizar o desempenho e a experiência do usuário.
+
+### Considerações de Desenvolvimento
+
+*   **TypeScript:** Garante maior segurança e manutenibilidade do código através da tipagem estática.
+*   **Componentização:** A arquitetura baseada em componentes facilita o desenvolvimento, teste e reutilização de elementos da UI.
+*   **Estilização:** Tailwind CSS permite um desenvolvimento ágil e consistente da interface, com classes utilitárias que evitam a necessidade de escrever CSS customizado em muitos casos.
+*   **Gerenciamento de Estado:** `react-query` simplifica o gerenciamento de dados assíncronos, reduzindo a complexidade e melhorando a performance da aplicação.
+
+---
+
+**Autor:** Cledson Alves
+**Data:** 24 de julho de 2025
+
+
