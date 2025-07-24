@@ -18,7 +18,7 @@ from app.api.routes.gemini_agent_routes import gemini_agent_bp
 from app.api.routes.openai_agent_routes import openai_agent_bp
 from app.api.routes.review_agent_routes import review_agent_bp
 from app.api.routes.data_analysis_routes import data_analysis_bp
-from app.api.routes.dashboard_routes import dashboard_b
+from app.api.routes.dashboard_routes import dashboard_bp
 from app.api.routes.chat_routes import chat_bp
 
 
