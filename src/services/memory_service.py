@@ -40,6 +40,7 @@ class MemoryService:
                     CREATE TABLE IF NOT EXISTS conversations (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id TEXT NOT NULL,
+                        session_id TEXT NOT NULL,
                         message TEXT NOT NULL,
                         response TEXT NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -51,16 +52,16 @@ class MemoryService:
         except Exception as e:
             print(f"Erro ao inicializar tabelas SQLite: {e}")
     
-    def save_conversation(self, user_id: str, message: str, response: str, metadata: Optional[Dict] = None):
+    def save_message(self, user_id: str, session_id: str, message: str, response: str, metadata: Optional[Dict] = None):
         """Salvar conversa no SQLite"""
         try:
             with self._get_connection() as conn:
                 cur = conn.cursor()
                 cur.execute("""
-                    INSERT INTO conversations (user_id, message, response, metadata)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO conversations (user_id, session_id, message, response, metadata)
+                    VALUES (?, ?, ?, ?, ?)
                 """, (
-                    user_id, message, response,
+                    user_id, session_id, message, response,
                     json.dumps(metadata) if metadata else None
                 ))
                 conn.commit()
@@ -68,7 +69,7 @@ class MemoryService:
         except Exception as e:
             raise Exception(f"Erro ao salvar conversa: {str(e)}")
     
-    def get_conversation_history(self, user_id: str, limit: int = 10) -> List[Dict]:
+    def get_conversation_history(self, user_id: str, session_id: str, limit: int = 10) -> List[Dict]:
         """Recuperar histórico de conversas do SQLite"""
         try:
             with self._get_connection() as conn:
@@ -76,10 +77,10 @@ class MemoryService:
                 cur.execute("""
                     SELECT message, response, created_at, metadata
                     FROM conversations
-                    WHERE user_id = ?
+                    WHERE user_id = ? AND session_id = ?
                     ORDER BY created_at DESC
                     LIMIT ?
-                """, (user_id, limit))
+                """, (user_id, session_id, limit))
                 
                 results = cur.fetchall()
                 cur.close()
@@ -98,6 +99,17 @@ class MemoryService:
         except Exception as e:
             raise Exception(f"Erro ao limpar memória do usuário: {str(e)}")
     
+    def clear_conversation_history(self, user_id: str, session_id: str):
+        """Limpar histórico de conversa específico de uma sessão"""
+        try:
+            with self._get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("DELETE FROM conversations WHERE user_id = ? AND session_id = ?", (user_id, session_id))
+                conn.commit()
+                cur.close()
+        except Exception as e:
+            raise Exception(f"Erro ao limpar histórico de conversa: {str(e)}")
+
     def get_memory_stats(self, user_id: str) -> Dict:
         """Obter estatísticas da memória do usuário"""
         try:

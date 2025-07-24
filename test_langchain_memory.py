@@ -22,6 +22,7 @@ def run_test():
         return
 
     user_id = "test_user_langchain"
+    session_id = "test_session_langchain"
     
     # Limpar memória do usuário para garantir um teste limpo
     try:
@@ -42,51 +43,27 @@ def run_test():
 
     for msg, resp in conversations_to_save:
         try:
-            memory_service.save_conversation(user_id, msg, resp)
-            print(f"✅ Conversa salva: '{msg}' / '{resp}'")
+            memory_service.save_message(user_id, session_id, msg, resp)
+            print(f"✅ Conversa salva: \'{msg}\' / \'{resp}\'")
         except Exception as e:
-            print(f"❌ Erro ao salvar conversa '{msg}': {e}")
+            print(f"❌ Erro ao salvar conversa \'{msg}\': {e}")
 
-    # 2. Buscar conversas similares
-    print("\n--- Buscando conversas similares ---")
-    query_st = "Me fale sobre Paris"
-    try:
-        similar_conversations = memory_service.get_similar_conversations(user_id, query_st, limit=2)
-        print(f"✅ Conversas similares para '{query_st}':")
-        for conv in similar_conversations:
-            print(f"  - Mensagem: {conv['message']}, Resposta: {conv['response']}, Distância: {conv['distance']:.4f}")
-    except Exception as e:
-        print(f"❌ Erro ao buscar conversas similares: {e}")
-
-    # 3. Recuperar memórias de longo prazo relevantes
-    print("\n--- Buscando memórias de longo prazo ---")
-    query_ltm = "Algo sobre café"
-    try:
-        relevant_ltm = memory_service.get_relevant_long_term_memories(user_id, query_ltm, limit=1)
-        print(f"✅ Memórias de longo prazo para '{query_ltm}':")
-        for mem in relevant_ltm:
-            print(f"  - Conteúdo: {mem['content']}, Tipo: {mem['memory_type']}, Importância: {mem['importance_score']:.2f}, Distância: {mem['distance']:.4f}")
-    except Exception as e:
-        print(f"❌ Erro ao buscar memórias de longo prazo: {e}")
-
-    # 4. Obter histórico de conversas
+    # 2. Obter histórico de conversas
     print("\n--- Obtendo histórico de conversas ---")
     try:
-        history = memory_service.get_conversation_history(user_id, limit=3)
+        history = memory_service.get_conversation_history(user_id, session_id, limit=3)
         print(f"✅ Histórico de conversas para '{user_id}':")
         for h in history:
             print(f"  - Mensagem: {h['message']}, Resposta: {h['response']}")
     except Exception as e:
         print(f"❌ Erro ao obter histórico de conversas: {e}")
 
-    # 5. Obter estatísticas da memória
+    # 3. Obter estatísticas da memória
     print("\n--- Obtendo estatísticas da memória ---")
     try:
         stats = memory_service.get_memory_stats(user_id)
         print(f"✅ Estatísticas da memória para '{user_id}':")
-        print(f"  - Conversas de curto prazo: {stats['short_term_conversations']}")
-        print(f"  - Memórias de longo prazo: {stats['long_term_memories']}")
-        print(f"  - Total de conversas (PostgreSQL): {stats['total_conversations']}")
+        print(f"  - Total de conversas: {stats['total_conversations']}")
     except Exception as e:
         print(f"❌ Erro ao obter estatísticas da memória: {e}")
 
@@ -94,3 +71,4 @@ def run_test():
 
 if __name__ == "__main__":
     run_test()
+

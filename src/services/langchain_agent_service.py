@@ -7,6 +7,7 @@ from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.tools.file_management import (
@@ -83,8 +84,13 @@ Seja proativo e use as ferramentas quando apropriado para fornecer informações
             if not session_id:
                 session_id = str(uuid.uuid4())
             
-            # Recuperar histórico de conversa
-            chat_history = self.memory_service.get_conversation_history(user_id, session_id)
+            # Recuperar histórico de conversa e converter para formato LangChain
+            history_data = self.memory_service.get_conversation_history(user_id, session_id)
+            chat_history = []
+            
+            for item in history_data:
+                chat_history.append(HumanMessage(content=item['message']))
+                chat_history.append(AIMessage(content=item['response']))
             
             # Criar executor do agente com memória
             agent_executor = AgentExecutor(
@@ -125,14 +131,20 @@ Seja proativo e use as ferramentas quando apropriado para fornecer informações
     def get_memory(self, user_id: str, session_id: Optional[str] = None) -> List[Dict]:
         """Recuperar memória do agente"""
         try:
-            return self.memory_service.get_conversation_history(user_id, session_id)
+            if session_id:
+                return self.memory_service.get_conversation_history(user_id, session_id)
+            else:
+                # Se não há session_id, retorna lista vazia ou histórico geral
+                return []
         except Exception as e:
             raise Exception(f"Erro ao recuperar memória: {str(e)}")
     
     def clear_memory(self, user_id: str, session_id: Optional[str] = None) -> None:
         """Limpar memória do agente"""
         try:
-            self.memory_service.clear_conversation_history(user_id, session_id)
+            if session_id:
+                self.memory_service.clear_conversation_history(user_id, session_id)
+            else:
+                self.memory_service.clear_user_memory(user_id)
         except Exception as e:
             raise Exception(f"Erro ao limpar memória: {str(e)}")
-
