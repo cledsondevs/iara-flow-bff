@@ -36,7 +36,7 @@ class OpenAIAgentService:
             
             # Gerar session_id se não fornecido
             if not session_id:
-                session_id = f"openai_session_{user_id}_{self.memory_service.get_current_timestamp()}"
+                session_id = f"openai_session_{user_id}_{ datetime.utcnow().isoformat(),}"
             
             # Recuperar histórico da conversa
             chat_history = self.memory_service.get_conversation_history(user_id, session_id)
@@ -99,7 +99,7 @@ class OpenAIAgentService:
             return {
                 "response": "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.",
                 "session_id": session_id or f"error_session_{user_id}",
-                "timestamp": self.memory_service.get_current_timestamp(),
+                "timestamp": datetime.utcnow().isoformat(),
                 "error": error_message,
                 "success": False
             }
@@ -121,7 +121,7 @@ class OpenAIAgentService:
                 session_id=session_id,
                 message_type="human",
                 content=user_message,
-                metadata={"agent": "openai", "timestamp": self.memory_service.get_current_timestamp()}
+                metadata={"agent": "openai", "timestamp": datetime.utcnow().isoformat(),}
             )
             
             # Salvar resposta do agente
@@ -130,7 +130,7 @@ class OpenAIAgentService:
                 session_id=session_id,
                 message_type="ai",
                 content=ai_response,
-                metadata={"agent": "openai", "timestamp": self.memory_service.get_current_timestamp()}
+                metadata={"agent": "openai",  "timestamp": datetime.utcnow().isoformat(),}
             )
             
         except Exception as e:
@@ -194,13 +194,13 @@ class OpenAIAgentService:
             return {
                 "success": True,
                 "message": f"Histórico da sessão {session_id} limpo com sucesso",
-                "timestamp": self.memory_service.get_current_timestamp()
+                "timestamp": datetime.utcnow().isoformat(),
             }
             
         except Exception as e:
             return {
                 "success": False,
                 "error": f"Erro ao limpar conversa: {str(e)}",
-                "timestamp": self.memory_service.get_current_timestamp()
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
