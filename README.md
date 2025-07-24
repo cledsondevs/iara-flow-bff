@@ -367,6 +367,110 @@ Ao chamar o endpoint `/gemini/chat`, certifique-se de fornecer o `user_id` e, op
   "session_id": "seu_session_id_aqui",
   "api_key": "sua_chave_api_gemini_aqui"
 }
+
+
+## 🧠 Como o LangChain Aprende Através de Conversas
+
+O coração de qualquer agente de IA conversacional eficaz reside na sua capacidade de "lembrar" o que foi dito anteriormente. Sem essa funcionalidade, cada interação seria um novo começo, resultando em respostas genéricas, repetitivas e, em última análise, uma experiência de usuário frustrante. No Iara Flow BFF, utilizamos o framework LangChain em conjunto com um serviço de memória persistente baseado em SQLite para dotar nossos agentes com essa capacidade crucial de aprendizado e contextualização.
+
+### O Conceito de Memória no LangChain
+
+No ecossistema LangChain, a memória é o componente responsável por preservar o estado de uma conversa. Isso permite que os Large Language Models (LLMs) como o Gemini, que são inerentemente "sem estado" (ou seja, não retêm informações de interações passadas por padrão), possam acessar o histórico da conversa e gerar respostas que são contextualmente relevantes. Existem diversos tipos de memória no LangChain, desde buffers simples que armazenam as últimas N interações até memórias mais complexas que utilizam embeddings para recuperar informações semanticamente similares.
+
+No nosso projeto, a implementação da memória é realizada através do `MemoryService`, que atua como uma camada de abstração sobre o banco de dados SQLite. Cada turno da conversa (mensagem do usuário e resposta do agente) é salvo de forma estruturada, permitindo que o agente recupere esse histórico quando necessário.
+
+### Mecanismo de Aprendizado e Contextualização
+
+O processo pelo qual o LangChain "aprende" e mantém o contexto das conversas no Iara Flow BFF pode ser detalhado em algumas etapas:
+
+1.  **Captura da Interação**: Sempre que um usuário envia uma mensagem para o agente de IA, e o agente gera uma resposta, essa dupla (mensagem do usuário, resposta do agente) é capturada pelo sistema.
+
+2.  **Persistência no SQLite**: O `MemoryService` é invocado para salvar essa interação no banco de dados SQLite. Cada registro inclui o `user_id` (identificador único do usuário), o `session_id` (identificador da sessão de conversa atual), a mensagem do usuário, a resposta do agente, e um timestamp. A inclusão do `session_id` é fundamental, pois permite que um mesmo usuário tenha múltiplas conversas independentes, ou que uma conversa seja retomada em diferentes momentos, mantendo seu próprio contexto.
+
+3.  **Recuperação do Histórico**: Antes de processar uma nova mensagem do usuário, o `LangChainAgentService` consulta o `MemoryService` para recuperar o histórico de conversas relevante. Essa recuperação é feita com base no `user_id` e no `session_id` fornecidos na requisição. Por padrão, um número limitado de interações mais recentes é recuperado para manter a relevância e evitar sobrecarga do contexto.
+
+4.  **Injeção de Contexto no LLM**: O histórico de conversas recuperado é então formatado de uma maneira que o modelo de linguagem (LLM) entenda. No caso do LangChain, isso geralmente envolve a conversão das mensagens em objetos `HumanMessage` e `AIMessage`, que representam as falas do usuário e do assistente, respectivamente. Esse histórico formatado é passado como parte do prompt para o LLM. É como se o agente estivesse lendo as últimas páginas de um livro antes de continuar a história.
+
+5.  **Geração de Resposta Contextualizada**: Com o histórico da conversa em mãos, o LLM é capaz de gerar uma resposta que não apenas aborda a mensagem atual do usuário, mas também leva em consideração o que foi discutido anteriormente. Isso resulta em interações mais fluidas, naturais e inteligentes, onde o agente demonstra compreensão do fluxo da conversa.
+
+### Importância da Memória
+
+A memória é vital para:
+
+*   **Coerência e Continuidade**: Garante que o agente mantenha o fio da meada, evitando que ele se contradiga ou peça informações já fornecidas.
+*   **Personalização**: Permite que o agente adapte suas respostas com base nas preferências ou informações previamente compartilhadas pelo usuário.
+*   **Eficiência**: Reduz a necessidade de o usuário repetir informações, tornando a interação mais eficiente e menos cansativa.
+*   **Experiência do Usuário Aprimorada**: Transforma um chatbot simples em um assistente verdadeiramente conversacional, capaz de engajar em diálogos complexos e de longo prazo.
+
+Em resumo, a funcionalidade de memória implementada no Iara Flow BFF é a espinha dorsal para a criação de agentes de IA que não apenas respondem, mas realmente interagem e aprendem com cada conversa, proporcionando uma experiência de usuário superior.
+
+
+
+## 🧹 Como Limpar o Histórico de Conversas via API
+
+Manter o histórico de conversas é essencial para a coerência e personalização das interações com o agente de IA. No entanto, em certos cenários, pode ser necessário limpar esse histórico. Isso pode ser útil para iniciar uma nova conversa do zero, para fins de privacidade, ou para depuração. O Iara Flow BFF oferece um endpoint específico para gerenciar a limpeza da memória do agente.
+
+### Endpoint de Limpeza de Memória
+
+O método `clear_memory` no `LangChainAgentService` é responsável por orquestrar a limpeza do histórico de conversas. Ele utiliza o `MemoryService` para interagir diretamente com o banco de dados SQLite e remover os registros de conversa.
+
+Você pode limpar o histórico de conversas de um usuário ou de uma sessão específica através do seguinte endpoint:
+
+*   **`POST /api/gemini/clear-memory`**
+
+Este endpoint aceita um corpo de requisição JSON com os seguintes parâmetros:
+
+*   **`user_id`** (obrigatório): O identificador único do usuário cujo histórico de conversas será limpo.
+*   **`session_id`** (opcional): O identificador da sessão específica a ser limpa. Se este parâmetro for fornecido, apenas o histórico daquela sessão para o `user_id` especificado será removido. Se `session_id` não for fornecido, **todo o histórico de conversas** para o `user_id` será limpo.
+
+### Exemplos de Uso
+
+#### 1. Limpar o histórico de uma sessão específica
+
+Para limpar apenas o histórico de uma sessão de conversa específica para um determinado usuário, inclua ambos `user_id` e `session_id` na sua requisição:
+
+```json
+{
+  "user_id": "seu_user_id_aqui",
+  "session_id": "seu_session_id_aqui"
+}
+```
+
+**Exemplo de `curl`:**
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "usuario123", "session_id": "sessaoABC"}' \
+  http://localhost:5000/api/gemini/clear-memory
+```
+
+#### 2. Limpar todo o histórico de um usuário
+
+Para limpar todo o histórico de conversas de um usuário (todas as sessões associadas a ele), forneça apenas o `user_id` na sua requisição:
+
+```json
+{
+  "user_id": "seu_user_id_aqui"
+}
+```
+
+**Exemplo de `curl`:**
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "usuario123"}' \
+  http://localhost:5000/api/gemini/clear-memory
+```
+
+### Considerações Importantes
+
+*   **Irreversibilidade**: A limpeza do histórico de conversas é uma operação irreversível. Uma vez que os dados são removidos do banco de dados, eles não podem ser recuperados.
+*   **Impacto na Coerência**: Limpar o histórico de uma sessão fará com que o agente "esqueça" o contexto anterior para aquela sessão, iniciando uma nova conversa do zero. Limpar todo o histórico de um usuário terá o mesmo efeito para todas as suas interações futuras.
+*   **Segurança**: Certifique-se de que o acesso a este endpoint seja devidamente protegido (por exemplo, através de autenticação e autorização) para evitar a exclusão indevida de dados de conversas.
+
+Esta funcionalidade oferece flexibilidade para gerenciar a memória do agente de acordo com as necessidades da aplicação e as preferências do usuário, garantindo tanto a privacidade quanto a capacidade de reiniciar interações quando desejado.
 ```
 
 O `session_id` pode ser gerado no frontend ou no backend, dependendo da sua estratégia de gerenciamento de sessão. Se não for fornecido, um novo `session_id` pode ser gerado ou o último `session_id` do `user_id` pode ser utilizado para continuar a conversa.
