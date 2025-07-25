@@ -22,7 +22,7 @@ class GeminiChatService:
                 session_id = str(uuid.uuid4())
             
             # Usar chave padrão do sistema diretamente
-            default_key = "AIzaSyDpLNBaYVrLSzxWj0kLD3v7n75pR5O-AfM"
+            default_key = "AIzaSyBPHQNceQTWTQ15D5TJlu_L2Gcd5uNODUk"
             print(f"Usando chave Gemini padrão para usuário {user_id}")
             genai.configure(api_key=default_key)
             
