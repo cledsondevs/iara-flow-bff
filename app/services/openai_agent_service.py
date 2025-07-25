@@ -4,12 +4,12 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from openai import OpenAI
 
-from app.services.memory_service import MemoryService
+from app.services.isolated_memory_service import IsolatedMemoryService
 from app.services.api_key_service import APIKeyService
 
 class OpenAIAgentService:
     def __init__(self):
-        self.memory_service = MemoryService()
+        self.memory_service = IsolatedMemoryService()
         self.api_key_service = APIKeyService()
         self.client = None
         
