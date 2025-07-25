@@ -8,6 +8,20 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Fixed
+- **Problemas críticos de salvamento e acesso de memórias resolvidos**
+  - Corrigidos problemas de DEFAULT (lower(hex(randomblob(16)))) em todas as tabelas
+  - Removidas expressões SQL incompatíveis que causavam erros de criação de tabelas
+  - Corrigidos arquivos: `backlog_generator_service.py`, `dashboard_service.py`, `review_collector_service.py`
+  - Sistema de memória de curto e longo prazo agora funciona corretamente
+  - Conversas são salvas e recuperadas adequadamente
+
+- **Dados padrão implementados no banco de dados**
+  - Criado script `create_sample_data.py` para popular o banco com dados de exemplo
+  - Inseridos 3 usuários padrão: admin, demo_user, test_user
+  - Criadas 3 conversas de exemplo com sistema de memória funcionando
+  - Inseridos 3 reviews de exemplo para testes
+  - Banco de dados não fica mais vazio após inicialização
+
 - **Problema crítico de bloqueio do banco de dados SQLite resolvido**
   - Implementado gerenciamento adequado de conexões usando context managers
   - Corrigidas todas as funções de autenticação para usar `with get_db_connection()`

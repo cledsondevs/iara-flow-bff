@@ -44,7 +44,7 @@ class ReviewCollectorService:
                 # Tabela para configurações de aplicativos
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS app_configs (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         package_name TEXT NOT NULL UNIQUE,
                         app_name TEXT NOT NULL,
                         stores TEXT NOT NULL DEFAULT '["google_play"]',
@@ -59,7 +59,7 @@ class ReviewCollectorService:
                 # Tabela para reviews coletados
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS reviews (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         package_name TEXT NOT NULL,
                         store TEXT NOT NULL,
                         review_id TEXT NOT NULL,
@@ -79,7 +79,7 @@ class ReviewCollectorService:
                 # Tabela para itens de backlog (se não existir)
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS backlog_items (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         title TEXT NOT NULL,
                         description TEXT,
                         priority INTEGER DEFAULT 1,
@@ -97,7 +97,7 @@ class ReviewCollectorService:
                 # Tabela para padrões de sentimento
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS sentiment_patterns (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         package_name TEXT NOT NULL,
                         topic TEXT NOT NULL,
                         sentiment_trend TEXT DEFAULT '[]',

@@ -29,7 +29,7 @@ class DashboardService:
                 # Tabela para dashboards personalizados
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS custom_dashboards (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         user_id TEXT,
                         session_id TEXT,
                         backlog_id TEXT,
@@ -49,7 +49,7 @@ class DashboardService:
                 # Tabela para componentes do dashboard
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS dashboard_components (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         dashboard_id TEXT NOT NULL,
                         component_type TEXT NOT NULL,
                         component_config TEXT NOT NULL,

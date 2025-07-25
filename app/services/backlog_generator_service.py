@@ -43,7 +43,7 @@ class BacklogGeneratorService:
                 # Tabela de reviews
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS reviews (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         package_name TEXT,
                         rating INTEGER,
                         sentiment TEXT,
@@ -56,7 +56,7 @@ class BacklogGeneratorService:
                 # Tabela de backlog items
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS backlog_items (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         title TEXT NOT NULL,
                         description TEXT,
                         priority INTEGER DEFAULT 3,
