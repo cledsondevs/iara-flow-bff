@@ -7,7 +7,48 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+- **Sistema de Memória Isolado V2 (Persistência por Usuário)**
+  - Implementação de um sistema de memória completamente novo e isolado, garantindo persistência de conversas por `user_id` (independente da `session_id`).
+  - **Novas Rotas API V2 para Chat Gemini:**
+    - `POST /api/v2/chat/gemini` - Chat principal com memória persistente.
+    - `GET /api/v2/chat/gemini/memory` - Recupera todo o histórico de memória do usuário.
+    - `DELETE /api/v2/chat/gemini/memory` - Limpa toda a memória do usuário.
+    - `GET /api/v2/chat/gemini/stats` - Obtém estatísticas de uso da memória do usuário.
+    - `PUT /api/v2/chat/gemini/profile` - Atualiza o perfil do usuário.
+    - `POST /api/v2/chat/gemini/fact` - Salva fatos específicos sobre o usuário.
+    - `GET /api/v2/chat/gemini/context` - Obtém o contexto completo da conversa do usuário.
+    - `GET /api/v2/chat/health` - Health check para o serviço V2.
+    - `POST /api/v2/chat/migrate` - Endpoint para futuras migrações de dados.
+  - **Persistência de Histórico por `user_id`:**
+    - A função `get_conversation_history_isolated` no `IsolatedMemoryService` agora busca o histórico apenas por `user_id`, ignorando a `session_id`.
+    - O `GeminiChatServiceV2` foi ajustado para utilizar este histórico expandido para construir o contexto da conversa.
+  - **Comandos de Memória Aprimorados:**
+    - A funcionalidade "Lembre-se disso:" agora utiliza o novo sistema de memória isolado, garantindo que os fatos sejam persistidos por `user_id`.
+
+### Removed
+- **Código da Versão 1 (V1) do Sistema de Memória e Chat:**
+  - `app/chats/routes/chat_routes.py` (Rotas de chat V1).
+  - `app/services/memory_service.py` (Serviço de memória V1).
+  - `app/services/enhanced_memory_service.py` (Serviço de memória aprimorado V1).
+  - `app/chats/services/gemini_chat_service.py` (Serviço de chat Gemini V1).
+  - Todas as importações e registros relacionados à V1 foram removidos do `app/main.py`.
+
 ### Fixed
+- **Problemas críticos de salvamento e acesso de memórias resolvidos**
+  - Corrigidos problemas de DEFAULT (lower(hex(randomblob(16)))) em todas as tabelas
+  - Removidas expressões SQL incompatíveis que causavam erros de criação de tabelas
+  - Corrigidos arquivos: `backlog_generator_service.py`, `dashboard_service.py`, `review_collector_service.py`
+  - Sistema de memória de curto e longo prazo agora funciona corretamente
+  - Conversas são salvas e recuperadas adequadamente
+
+- **Dados padrão implementados no banco de dados**
+  - Criado script `create_sample_data.py` para popular o banco com dados de exemplo
+  - Inseridos 3 usuários padrão: admin, demo_user, test_user
+  - Criadas 3 conversas de exemplo com sistema de memória funcionando
+  - Inseridos 3 reviews de exemplo para testes
+  - Banco de dados não fica mais vazio após inicialização
+
 - **Problema crítico de bloqueio do banco de dados SQLite resolvido**
   - Implementado gerenciamento adequado de conexões usando context managers
   - Corrigidas todas as funções de autenticação para usar `with get_db_connection()`
