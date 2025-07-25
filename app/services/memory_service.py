@@ -12,7 +12,7 @@ from app.config.settings import Config
 
 class MemoryService:
     def __init__(self):
-        self.db_path = Config.DATABASE_PATH
+        self.db_path = "./data/iara_flow.db"
         self._init_sqlite_tables()
     
     @contextmanager
