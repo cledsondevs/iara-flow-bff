@@ -16,7 +16,7 @@ class Config:
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     
     # Configurações do Google Gemini
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyBCDajU2VLuNYuKrFTBz452x5dpulmLfG0")
+    GEMINI_API_KEY = "AIzaSyDdXCVNZlO2ZFwT8xeF2H_Rhqeyv1KtiM0"
     
     # Configurações de CORS
     CORS_ORIGINS = "*"
