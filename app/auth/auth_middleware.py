@@ -3,7 +3,7 @@ from flask import request, jsonify
 import sqlite3
 import os
 
-DATABASE_PATH = os.getenv('DB_PATH', './iara_flow.db')
+DATABASE_PATH = os.getenv('DB_PATH', './data/iara_flow.db')
 
 def get_db_connection():
     """Estabelece conexão com o banco de dados SQLite"""

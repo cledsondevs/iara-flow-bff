@@ -8,20 +8,31 @@ import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import sqlite3
+from contextlib import contextmanager
 
 from app.models.review_models import Review, StoreType, AppConfig
 
 class ReviewCollectorService:
     def __init__(self):
-        self.database_path = os.getenv("DB_PATH", "./iara_flow.db")
+        self.database_path = os.getenv("DB_PATH", os.path.abspath("./data/iara_flow.db"))
         self.api_base_url = "https://bff-analyse.vercel.app/api/apps"
         self._create_tables()
     
+    @contextmanager
     def _get_connection(self):
-        """Obter conexão com o banco de dados SQLite"""
-        conn = sqlite3.connect(self.database_path)
-        conn.row_factory = sqlite3.Row
-        return conn
+        """Context manager para conexões com SQLite"""
+        conn = None
+        try:
+            conn = sqlite3.connect(self.database_path)
+            conn.row_factory = sqlite3.Row
+            yield conn
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            raise e
+        finally:
+            if conn:
+                conn.close()
     
     def _create_tables(self):
         """Criar tabelas necessárias para reviews e configurações"""

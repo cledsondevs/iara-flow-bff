@@ -16,6 +16,8 @@ from app.api.routes.review_agent_routes import review_agent_bp
 from app.api.routes.data_analysis_routes import data_analysis_bp
 from app.api.routes.dashboard_routes import dashboard_bp
 from app.chats.routes.chat_routes import chat_bp
+from app.api.routes.api_key_routes import api_key_bp
+
 def create_app(config_name='default'):
     """Factory function para criar a aplicação Flask"""
     app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
@@ -50,6 +52,7 @@ def create_app(config_name='default'):
     app.register_blueprint(data_analysis_bp, url_prefix="/api")
     app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
     app.register_blueprint(chat_bp, url_prefix="/api")
+    app.register_blueprint(api_key_bp, url_prefix="/api")
 
     @app.route("/")
     def health_check():
@@ -83,11 +86,7 @@ def main():
         port=app.config["PORT"],
         debug=app.config["DEBUG"]
     )
+
 if __name__ == "__main__":
     main()
-
-
-
-
-
 

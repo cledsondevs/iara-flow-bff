@@ -1,10 +1,13 @@
 from flask import Blueprint, request, jsonify
+from flask_cors import cross_origin
+from datetime import datetime
+
 from app.services.openai_agent_service import OpenAIAgentService
 
-openai_agent_bp = Blueprint('openai_agent', __name__)
+openai_agent_bp = Blueprint("openai_agent", __name__)
 openai_service = OpenAIAgentService()
 
-@openai_agent_bp.route('/chat', methods=['POST'])
+@openai_agent_bp.route("/chat", methods=["POST"])
 def chat_with_openai():
     """
     Endpoint para chat com agente OpenAI.
@@ -14,7 +17,6 @@ def chat_with_openai():
         "message": "Mensagem do usuário",
         "user_id": "ID único do usuário",
         "session_id": "ID da sessão (opcional)",
-        "api_key": "Chave da API OpenAI (opcional)",
         "model": "Modelo OpenAI (opcional, padrão: gpt-3.5-turbo)"
     }
     """
@@ -27,11 +29,10 @@ def chat_with_openai():
                 "error": "Dados JSON não fornecidos"
             }), 400
         
-        message = data.get('message')
-        user_id = data.get('user_id')
-        session_id = data.get('session_id')
-        api_key = data.get('api_key')
-        model = data.get('model', 'gpt-3.5-turbo')
+        message = data.get("message")
+        user_id = data.get("user_id")
+        session_id = data.get("session_id")
+        model = data.get("model", "gpt-3.5-turbo")
         
         if not message:
             return jsonify({
@@ -50,7 +51,6 @@ def chat_with_openai():
             message=message,
             user_id=user_id,
             session_id=session_id,
-            api_key=api_key,
             model=model
         )
         

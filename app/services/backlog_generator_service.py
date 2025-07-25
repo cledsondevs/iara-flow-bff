@@ -16,7 +16,7 @@ from app.models.review_models import BacklogItem, SentimentType
 
 class BacklogGeneratorService:
     def __init__(self):
-        self.database_path = os.getenv("DB_PATH", "./iara_flow.db")
+        self.database_path = os.getenv("DB_PATH", "./data/iara_flow.db")
         
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
