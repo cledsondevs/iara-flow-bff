@@ -47,7 +47,7 @@ class GeminiAgentService:
             response_text = response.text if response.text else "Desculpe, não consegui gerar uma resposta."
             
             # Salvar a conversa na memória
-            self.memory_service.save_conversation(
+            self.memory_service.save_message(
                 user_id=user_id,
                 message=user_message,
                 response=response_text,
