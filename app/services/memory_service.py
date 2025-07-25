@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class MemoryService:
     def __init__(self):
         self.db_path = Config.DATABASE_PATH
-        logger.info(f"Cledson - Inicializando MemoryService com database path: {self.db_path}")
+        logger.info(f"Inicializando MemoryService com database path: {self.db_path}")
         
         # Garantir que o diretório do banco existe
         db_dir = os.path.dirname(self.db_path)
@@ -90,6 +90,8 @@ class MemoryService:
         """Salvar conversa no SQLite"""
         try:
             logger.info(f"Salvando conversa - User: {user_id}, Session: {session_id}")
+            logger.info(f"CONTEÚDO SALVO - MESSAGE: '{message[:100]}{'...' if len(message) > 100 else ''}'")
+            logger.info(f"CONTEÚDO SALVO - RESPONSE: '{response[:100]}{'...' if len(response) > 100 else ''}'")
             logger.debug(f"Message length: {len(message)}, Response length: {len(response)}")
             
             with self._get_connection() as conn:
@@ -101,12 +103,13 @@ class MemoryService:
                     user_id, session_id, message, response,
                     json.dumps(metadata) if metadata else None
                 ))
+                conversation_id = cur.lastrowid
                 conn.commit()
                 cur.close()
                 
-            logger.info(f"Conversa salva com sucesso - User: {user_id}, Session: {session_id}")
+            logger.info(f"Conversa salva com sucesso - ID: {conversation_id}, User: {user_id}, Session: {session_id}")
             if metadata:
-                logger.debug(f"Metadata salva: {metadata}")
+                logger.info(f"METADATA SALVA: {metadata}")
                 
         except Exception as e:
             logger.error(f"Erro ao salvar conversa - User: {user_id}, Session: {session_id}, Error: {str(e)}")
@@ -253,19 +256,20 @@ class MemoryService:
         """Atualizar perfil global do usuário"""
         try:
             logger.info(f"Atualizando perfil do usuário: {user_id}")
-            logger.debug(f"Updates a serem aplicados: {profile_updates}")
+            logger.info(f"PROFILE UPDATES RECEBIDOS: {profile_updates}")
             
             with self._get_connection() as conn:
                 cur = conn.cursor()
                 
                 # Primeiro, tentar recuperar o perfil existente
                 current_profile = self.get_user_profile(user_id)
+                logger.info(f"PERFIL ATUAL: {current_profile['profile_data']}")
                 
                 # Mesclar os dados existentes com as atualizações
                 merged_profile = current_profile["profile_data"].copy()
                 merged_profile.update(profile_updates)
                 
-                logger.debug(f"Perfil mesclado: {merged_profile}")
+                logger.info(f"PERFIL FINAL SALVO: {merged_profile}")
                 
                 # Inserir ou atualizar o perfil
                 cur.execute("""
@@ -408,7 +412,7 @@ class MemoryService:
         """Salvar um fato específico sobre o usuário"""
         try:
             logger.info(f"Salvando fato do usuário: {user_id}")
-            logger.debug(f"Fato a ser salvo: {fact}")
+            logger.info(f"FATO A SER SALVO: '{fact}'")
             
             # Recuperar perfil atual
             profile = self.get_user_profile(user_id)
@@ -419,31 +423,36 @@ class MemoryService:
                 profile_data["user_facts"] = []
                 logger.debug("Lista de fatos inicializada")
             
+            logger.info(f"FATOS EXISTENTES ANTES: {profile_data.get('user_facts', [])}")
+            
             # Adicionar o novo fato (evitar duplicatas)
             if fact not in profile_data["user_facts"]:
                 profile_data["user_facts"].append(fact)
-                logger.info(f"Fato adicionado - Total de fatos: {len(profile_data['user_facts'])}")
+                logger.info(f"FATO ADICIONADO À LISTA - Total de fatos agora: {len(profile_data['user_facts'])}")
                 
                 # Limitar a 10 fatos para evitar contexto muito longo
                 if len(profile_data["user_facts"]) > 10:
                     removed_facts = profile_data["user_facts"][:-10]
                     profile_data["user_facts"] = profile_data["user_facts"][-10:]
-                    logger.info(f"Lista de fatos limitada a 10 - {len(removed_facts)} fatos antigos removidos")
+                    logger.info(f"FATOS ANTIGOS REMOVIDOS (limite 10): {removed_facts}")
+                
+                logger.info(f"LISTA FINAL DE FATOS: {profile_data['user_facts']}")
                 
                 # Atualizar perfil
                 self.update_user_profile(user_id, profile_data)
-                logger.info(f"Fato salvo com sucesso - User: {user_id}")
+                logger.info(f"FATO SALVO COM SUCESSO - User: {user_id}, Fato: '{fact}'")
             else:
-                logger.info(f"Fato já existe, não foi duplicado - User: {user_id}")
+                logger.info(f"FATO JÁ EXISTE - Não foi duplicado - User: {user_id}, Fato: '{fact}'")
                 
         except Exception as e:
-            logger.error(f"Erro ao salvar fato do usuário: {user_id}, Error: {str(e)}")
+            logger.error(f"Erro ao salvar fato do usuário: {user_id}, Fato: '{fact}', Error: {str(e)}")
             raise Exception(f"Erro ao salvar fato do usuário: {str(e)}")
     
     def detect_and_save_user_fact(self, user_message: str, user_id: str) -> tuple[str, bool]:
         """Detectar se o usuário quer salvar um fato e extraí-lo"""
         try:
             logger.debug(f"Detectando fatos na mensagem do usuário: {user_id}")
+            logger.debug(f"MENSAGEM ANALISADA: '{user_message}'")
             
             # Palavras-chave que indicam que o usuário quer salvar algo
             trigger_phrases = [
@@ -461,7 +470,7 @@ class MemoryService:
             
             for phrase in trigger_phrases:
                 if phrase in message_lower:
-                    logger.info(f"Frase-gatilho detectada: '{phrase}' - User: {user_id}")
+                    logger.info(f"FRASE-GATILHO DETECTADA: '{phrase}' - User: {user_id}")
                     
                     # Encontrar o índice onde começa o fato
                     start_index = message_lower.find(phrase) + len(phrase)
@@ -470,7 +479,7 @@ class MemoryService:
                     fact = user_message[start_index:].strip()
                     
                     if fact:  # Se há conteúdo para salvar
-                        logger.info(f"Fato extraído: '{fact}' - User: {user_id}")
+                        logger.info(f"FATO EXTRAÍDO DA MENSAGEM: '{fact}' - User: {user_id}")
                         
                         # Salvar o fato
                         self.save_user_fact(user_id, fact)
@@ -480,14 +489,14 @@ class MemoryService:
                         if not cleaned_message:
                             cleaned_message = f"Entendi! Vou lembrar que {fact}"
                         
-                        logger.info(f"Mensagem processada e fato salvo - User: {user_id}")
+                        logger.info(f"MENSAGEM PROCESSADA: '{user_message}' -> '{cleaned_message}' - User: {user_id}")
                         return cleaned_message, True
             
             logger.debug(f"Nenhuma frase-gatilho detectada - User: {user_id}")
             return user_message, False
             
         except Exception as e:
-            logger.error(f"Erro ao detectar e salvar fato do usuário: {user_id}, Error: {str(e)}")
+            logger.error(f"Erro ao detectar e salvar fato do usuário: {user_id}, Mensagem: '{user_message}', Error: {str(e)}")
             # Em caso de erro, retornar mensagem original
             return user_message, False
     
@@ -516,14 +525,20 @@ class MemoryService:
             profile = self.get_user_profile(user_id)
             profile_data = profile["profile_data"].copy()
             
+            logger.info(f"FATOS ANTES DA REMOÇÃO: {profile_data.get('user_facts', [])}")
+            
             if "user_facts" in profile_data and 0 <= fact_index < len(profile_data["user_facts"]):
                 removed_fact = profile_data["user_facts"].pop(fact_index)
+                
+                logger.info(f"FATO REMOVIDO: '{removed_fact}' (índice {fact_index})")
+                logger.info(f"FATOS APÓS REMOÇÃO: {profile_data['user_facts']}")
+                
                 self.update_user_profile(user_id, profile_data)
                 
-                logger.info(f"Fato removido com sucesso - User: {user_id}, Fato: '{removed_fact}'")
+                logger.info(f"REMOÇÃO CONCLUÍDA COM SUCESSO - User: {user_id}")
                 return True
             else:
-                logger.warning(f"Índice inválido para remoção de fato - User: {user_id}, Índice: {fact_index}")
+                logger.warning(f"ÍNDICE INVÁLIDO para remoção de fato - User: {user_id}, Índice: {fact_index}, Fatos disponíveis: {len(profile_data.get('user_facts', []))}")
                 return False
                 
         except Exception as e:
