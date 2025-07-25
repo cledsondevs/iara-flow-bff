@@ -5,28 +5,26 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from app.services.memory_service import MemoryService
 from app.config.settings import Config
+from app.api.services.api_key_service import ApiKeyService
 
 
 class GeminiChatService:
     def __init__(self):
         self.memory_service = MemoryService()
+        self.api_key_service = ApiKeyService()
         
-        # Configurar API do Gemini
-        api_key = Config.GEMINI_API_KEY
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY não encontrada nas configurações")
-        
-        genai.configure(api_key=api_key)
-        
-        # Configurar modelo
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        # Configurar modelo (a API key será configurada por usuário)
+        self.model = genai.GenerativeModel("gemini-1.5-flash")
         
     def process_message(self, user_message: str, user_id: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Processar mensagem do usuário com o Gemini"""
         try:
-            # Gerar session_id se não fornecido
-            if not session_id:
-                session_id = str(uuid.uuid4())
+            # Obter a API key do usuário do banco de dados
+            api_key_data = self.api_key_service.get_api_key(user_id, "gemini")
+            if not api_key_data or not api_key_data.get("api_key"):
+                raise ValueError("API Key do Gemini não configurada para este usuário.")
+            
+            genai.configure(api_key=api_key_data["api_key"])
             
             # Detectar e processar comando "Lembre-se disso"
             processed_message, fact_saved = self.memory_service.detect_and_save_user_fact(user_message, user_id)

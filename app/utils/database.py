@@ -60,16 +60,27 @@ def init_database():
                 )
             """)
             
-            # Tabela de memórias (para o agente)
+            # Tabela de conversas (para o agente)
             cur.execute("""
-                CREATE TABLE IF NOT EXISTS memories (
+                CREATE TABLE IF NOT EXISTS conversations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER,
-                    session_id TEXT,
-                    content TEXT NOT NULL,
-                    metadata TEXT,
+                    user_id TEXT NOT NULL,
+                    session_id TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    response TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users (id)
+                    metadata TEXT
+                )
+            """)
+            
+            # Tabela para perfil/memória global do usuário
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id TEXT NOT NULL UNIQUE,
+                    profile_data TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             

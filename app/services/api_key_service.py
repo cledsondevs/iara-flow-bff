@@ -1,11 +1,9 @@
 import sqlite3
-import os
-from contextlib import contextmanager
-from typing import Optional
+from app.config.settings import Config
 
 class APIKeyService:
     def __init__(self):
-        self.db_path = os.getenv("DB_PATH", "./data/iara_flow.db")
+        self.db_path = Config.DATABASE_PATH
         self._init_sqlite_table()
 
     @contextmanager

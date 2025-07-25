@@ -35,14 +35,6 @@ def create_app(config_name='default'):
     except Exception as e:
         print(f"Erro ao inicializar banco de dados: {e}")
     
-    # Inicializar MemoryService para garantir que as tabelas sejam criadas
-    try:
-        from app.services.memory_service import MemoryService
-        memory_service = MemoryService()
-        print("MemoryService inicializado com sucesso")
-    except Exception as e:
-        print(f"Erro ao inicializar MemoryService: {e}")
-    
     # Criar usuário padrão se não existir
     try:
         from app.auth.auth_routes import get_db_connection
