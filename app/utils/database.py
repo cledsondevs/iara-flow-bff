@@ -98,6 +98,19 @@ def init_database():
                 )
             """)
 
+            # Tabela para chaves de API
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    service TEXT NOT NULL,
+                    api_key TEXT NOT NULL,
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, service)
+                )
+            """)
+            
             # Tabela de reviews
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS reviews (
@@ -120,7 +133,7 @@ def init_database():
             # Tabela de configurações de aplicativos
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS app_configs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    id TEXT PRIMARY KEY,
                     package_name TEXT UNIQUE NOT NULL,
                     app_name TEXT NOT NULL,
                     stores TEXT,
