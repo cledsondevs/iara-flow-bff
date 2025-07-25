@@ -212,12 +212,11 @@ class IsolatedMemoryService:
     def get_conversation_history_isolated(
         self, 
         user_id: str, 
-        session_id: str, 
         limit: int = 10
     ) -> List[Dict]:
-        """Recuperar histórico de conversas do sistema isolado"""
+        """Recuperar histórico de conversas do sistema isolado, independente da sessão"""
         try:
-            logger.info(f"[ISOLATED_MEMORY] Recuperando histórico - User: {user_id}, Session: {session_id}")
+            logger.info(f"[ISOLATED_MEMORY] Recuperando histórico global - User: {user_id}")
             
             with self._get_db_connection() as conn:
                 cursor = conn.cursor()
@@ -226,37 +225,37 @@ class IsolatedMemoryService:
                     SELECT id, user_message, assistant_response, timestamp, 
                            created_at, metadata_json
                     FROM memory_conversations
-                    WHERE user_id = ? AND session_id = ?
+                    WHERE user_id = ?
                     ORDER BY timestamp DESC
                     LIMIT ?
-                """, (user_id, session_id, limit))
+                """, (user_id, limit))
                 
                 results = cursor.fetchall()
                 
             conversations = []
             for row in results:
                 conv_data = {
-                    "id": row['id'],
-                    "message": row['user_message'],
-                    "response": row['assistant_response'],
-                    "timestamp": row['timestamp'],
-                    "created_at": row['created_at'],
+                    "id": row["id"],
+                    "message": row["user_message"],
+                    "response": row["assistant_response"],
+                    "timestamp": row["timestamp"],
+                    "created_at": row["created_at"],
                     "metadata": {}
                 }
                 
-                if row['metadata_json']:
+                if row["metadata_json"]:
                     try:
-                        conv_data["metadata"] = json.loads(row['metadata_json'])
+                        conv_data["metadata"] = json.loads(row["metadata_json"])
                     except json.JSONDecodeError:
                         logger.warning(f"[ISOLATED_MEMORY] Erro ao parsear metadata para conversa {row['id']}")
                 
                 conversations.append(conv_data)
             
-            logger.info(f"[ISOLATED_MEMORY] Histórico recuperado: {len(conversations)} conversas")
+            logger.info(f"[ISOLATED_MEMORY] Histórico global recuperado: {len(conversations)} conversas")
             return conversations
             
         except Exception as e:
-            logger.error(f"[ISOLATED_MEMORY] Erro ao recuperar histórico: {e}")
+            logger.error(f"[ISOLATED_MEMORY] Erro ao recuperar histórico global: {e}")
             raise Exception(f"Erro no sistema isolado de memória: {str(e)}")
     
     def get_user_profile_isolated(self, user_id: str) -> Dict:

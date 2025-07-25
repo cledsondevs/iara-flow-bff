@@ -42,9 +42,9 @@ def test_isolated_memory_service():
         print(f"✅ Conversa salva - ID: {conversation_id}")
         
         # Teste 2: Recuperar histórico
-        print("\n2️⃣ Testando get_conversation_history_isolated...")
-        history = memory_service.get_conversation_history_isolated(test_user_id, test_session_id, limit=5)
-        print(f"📚 Histórico recuperado: {len(history)} conversas")
+        print("\n2️⃣ Testando get_conversation_history_isolated (global)...")
+        history = memory_service.get_conversation_history_isolated(test_user_id, limit=5)
+        print(f"📚 Histórico global recuperado: {len(history)} conversas")
         for i, conv in enumerate(history):
             print(f"  {i+1}. {conv['message'][:50]}... -> {conv['response'][:50]}...")
         

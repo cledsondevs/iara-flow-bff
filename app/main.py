@@ -15,7 +15,7 @@ from app.api.routes.openai_agent_routes import openai_agent_bp
 from app.api.routes.review_agent_routes import review_agent_bp
 from app.api.routes.data_analysis_routes import data_analysis_bp
 from app.api.routes.dashboard_routes import dashboard_bp
-from app.chats.routes.chat_routes import chat_bp
+
 from app.chats.routes.chat_routes_v2 import chat_v2_bp  # Nova importação
 from app.api.routes.api_key_routes import api_key_bp
 
@@ -76,7 +76,7 @@ def create_app(config_name='default'):
     app.register_blueprint(review_agent_bp)
     app.register_blueprint(data_analysis_bp, url_prefix="/api")
     app.register_blueprint(dashboard_bp, url_prefix="/api/dashboard")
-    app.register_blueprint(chat_bp, url_prefix="/api")
+
     app.register_blueprint(chat_v2_bp)  # Novo blueprint V2
     app.register_blueprint(api_key_bp, url_prefix="/api")
 

@@ -44,8 +44,7 @@ class GeminiChatServiceV2:
             message_for_ai = processed_message if memory_command_executed else user_message
             
             # Obter contexto completo do usuário
-            user_context = self.memory_service.get_user_context_isolated(user_id, session_id)
-            
+            user_context = self.memory_service.get_user_context_isolated(user_id)
             # Construir prompt com contexto
             full_prompt = self._build_conversation_prompt(message_for_ai, user_context)
             
@@ -123,21 +122,20 @@ INSTRUÇÕES IMPORTANTES:
         try:
             logger.info(f"[GEMINI_V2] Recuperando memória - User: {user_id}")
             
-            if session_id:
-                # Recuperar histórico específico da sessão
-                history = self.memory_service.get_conversation_history_isolated(user_id, session_id, limit=20)
-                return history
-            else:
-                # Recuperar informações gerais do usuário
-                profile = self.memory_service.get_user_profile_isolated(user_id)
-                facts = self.memory_service.get_user_facts_isolated(user_id)
-                stats = self.memory_service.get_memory_stats_isolated(user_id)
-                
-                return {
-                    "profile": profile,
-                    "facts": facts,
-                    "stats": stats
-                }
+            # Sempre recuperar histórico global
+            history = self.memory_service.get_conversation_history_isolated(user_id, limit=20)
+            
+            # Recuperar informações gerais do usuário
+            profile = self.memory_service.get_user_profile_isolated(user_id)
+            facts = self.memory_service.get_user_facts_isolated(user_id)
+            stats = self.memory_service.get_memory_stats_isolated(user_id)
+            
+            return {
+                "history": history,
+                "profile": profile,
+                "facts": facts,
+                "stats": stats
+            }
                 
         except Exception as e:
             logger.error(f"[GEMINI_V2] Erro ao recuperar memória: {str(e)}")
