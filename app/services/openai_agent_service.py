@@ -120,23 +120,7 @@ class OpenAIAgentService:
         """
         try:
             # Salvar mensagem do usuário
-            self.memory_service.save_conversation(
-                user_id=user_id,
-                session_id=session_id,
-                message_type="human",
-                content=user_message,
-                metadata={"agent": "openai", "timestamp": datetime.utcnow().isoformat()}
-            )
-            
-            # Salvar resposta do agente
-            self.memory_service.save_conversation(
-                user_id=user_id,
-                session_id=session_id,
-                message_type="ai",
-                content=ai_response,
-                metadata={"agent": "openai", "timestamp": datetime.utcnow().isoformat()}
-            )
-            
+            self.memory_service.save_conversation(user_id, session_id, user_message, ai_response)
         except Exception as e:
             print(f"Erro ao salvar conversa: {str(e)}")
     

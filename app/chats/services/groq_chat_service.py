@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from groq import Groq
-from src.services.memory_service import MemoryService
+from app.services.memory_service import MemoryService
 
 
 class GroqChatService:

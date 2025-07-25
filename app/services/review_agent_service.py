@@ -10,11 +10,11 @@ import threading
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 
-from src.services.review_collector_service import ReviewCollectorService
-from src.services.sentiment_analysis_service import SentimentAnalysisService
-from src.services.backlog_generator_service import BacklogGeneratorService
-from src.services.enhanced_memory_service import EnhancedMemoryService
-from src.models.review_models import StoreType
+from app.services.review_collector_service import ReviewCollectorService
+from app.services.sentiment_analysis_service import SentimentAnalysisService
+from app.services.backlog_generator_service import BacklogGeneratorService
+from app.services.enhanced_memory_service import EnhancedMemoryService
+from app.models.review_models import StoreType
 
 class ReviewAgentService:
     def __init__(self):

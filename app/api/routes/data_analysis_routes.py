@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
-from app.modules.scraping.google_play import GooglePlayScrapingService
-from app.modules.scraping.apple_store import AppleAppStoreScrapingService
-from app.modules.sentiment.analysis import SentimentAnalysisService
-from app.auth.middleware import require_auth
+from app.services.google_play_scraping_service import GooglePlayScrapingService
+from app.services.apple_app_store_scraping_service import AppleAppStoreScrapingService
+from app.services.sentiment_analysis_service import SentimentAnalysisService
+from app.middleware import require_auth
 import os
 
 data_analysis_bp = Blueprint("data_analysis", __name__)
