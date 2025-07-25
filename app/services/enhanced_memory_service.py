@@ -27,7 +27,7 @@ class EnhancedMemoryService(MemoryService):
                 # Tabela para padrões de sentimento aprendidos
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS review_sentiment_patterns (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         package_name TEXT NOT NULL,
                         pattern_type TEXT NOT NULL,
                         pattern_data TEXT NOT NULL,
@@ -42,7 +42,7 @@ class EnhancedMemoryService(MemoryService):
                 # Tabela para correlações problema-solução
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS problem_solution_correlations (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         problem_pattern TEXT NOT NULL,
                         solution_implemented TEXT,
                         backlog_item_id TEXT,
@@ -59,7 +59,7 @@ class EnhancedMemoryService(MemoryService):
                 # Tabela para evolução de sentimento
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS sentiment_evolution (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         package_name TEXT NOT NULL,
                         topic TEXT NOT NULL,
                         time_period DATE NOT NULL,
@@ -74,7 +74,7 @@ class EnhancedMemoryService(MemoryService):
                 # Tabela para otimização de backlog
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS backlog_optimization_patterns (
-                        id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                        id TEXT PRIMARY KEY,
                         pattern_name TEXT NOT NULL UNIQUE,
                         pattern_description TEXT,
                         success_indicators TEXT,
@@ -98,25 +98,30 @@ class EnhancedMemoryService(MemoryService):
         """Aprender um novo padrão de sentimento"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    # Verificar se padrão já existe
-                    pattern_key = pattern_data.get('key', str(uuid.uuid4()))
-                    pattern_data['key'] = pattern_key
-                    
-                    cur.execute("""
-                        INSERT OR REPLACE INTO review_sentiment_patterns 
-                        (package_name, pattern_type, pattern_data, confidence_score, frequency, last_updated)
-                        VALUES (?, ?, ?, ?, 
-                                COALESCE((SELECT frequency FROM review_sentiment_patterns 
-                                         WHERE package_name = ? AND pattern_type = ? 
-                                         AND json_extract(pattern_data, '$.key') = ?), 0) + 1,
-                                CURRENT_TIMESTAMP)
-                    """, (
-                        package_name, pattern_type, json.dumps(pattern_data),
-                        confidence, package_name, pattern_type, pattern_key
-                    ))
-                    
-                    conn.commit()
+                cur = conn.cursor()
+                
+                # Verificar se padrão já existe
+                pattern_key = pattern_data.get('key', str(uuid.uuid4()))
+                pattern_data['key'] = pattern_key
+                
+                # Gerar ID único
+                pattern_id = str(uuid.uuid4())
+                
+                cur.execute("""
+                    INSERT OR REPLACE INTO review_sentiment_patterns 
+                    (id, package_name, pattern_type, pattern_data, confidence_score, frequency, last_updated)
+                    VALUES (?, ?, ?, ?, ?, 
+                            COALESCE((SELECT frequency FROM review_sentiment_patterns 
+                                     WHERE package_name = ? AND pattern_type = ? 
+                                     AND json_extract(pattern_data, '$.key') = ?), 0) + 1,
+                            CURRENT_TIMESTAMP)
+                """, (
+                    pattern_id, package_name, pattern_type, json.dumps(pattern_data),
+                    confidence, package_name, pattern_type, pattern_key
+                ))
+                
+                conn.commit()
+                cur.close()
                     
         except Exception as e:
             raise Exception(f"Erro ao aprender padrão de sentimento: {str(e)}")
@@ -126,33 +131,35 @@ class EnhancedMemoryService(MemoryService):
         """Recuperar padrões de sentimento aprendidos"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    if pattern_type:
-                        cur.execute("""
-                            SELECT * FROM review_sentiment_patterns 
-                            WHERE package_name = ? AND pattern_type = ?
-                            ORDER BY confidence_score DESC, frequency DESC
-                        """, (package_name, pattern_type))
-                    else:
-                        cur.execute("""
-                            SELECT * FROM review_sentiment_patterns 
-                            WHERE package_name = ?
-                            ORDER BY confidence_score DESC, frequency DESC
-                        """, (package_name,))
-                    
-                    patterns = []
-                    for row in cur.fetchall():
-                        patterns.append({
-                            'id': row['id'],
-                            'package_name': row['package_name'],
-                            'pattern_type': row['pattern_type'],
-                            'pattern_data': json.loads(row['pattern_data']) if row['pattern_data'] else {},
-                            'confidence_score': row['confidence_score'],
-                            'frequency': row['frequency'],
-                            'last_updated': row['last_updated']
-                        })
-                    
-                    return patterns
+                cur = conn.cursor()
+                
+                if pattern_type:
+                    cur.execute("""
+                        SELECT * FROM review_sentiment_patterns 
+                        WHERE package_name = ? AND pattern_type = ?
+                        ORDER BY confidence_score DESC, frequency DESC
+                    """, (package_name, pattern_type))
+                else:
+                    cur.execute("""
+                        SELECT * FROM review_sentiment_patterns 
+                        WHERE package_name = ?
+                        ORDER BY confidence_score DESC, frequency DESC
+                    """, (package_name,))
+                
+                patterns = []
+                for row in cur.fetchall():
+                    patterns.append({
+                        'id': row['id'],
+                        'package_name': row['package_name'],
+                        'pattern_type': row['pattern_type'],
+                        'pattern_data': json.loads(row['pattern_data']) if row['pattern_data'] else {},
+                        'confidence_score': row['confidence_score'],
+                        'frequency': row['frequency'],
+                        'last_updated': row['last_updated']
+                    })
+                
+                cur.close()
+                return patterns
                     
         except Exception as e:
             raise Exception(f"Erro ao recuperar padrões de sentimento: {str(e)}")
@@ -187,20 +194,25 @@ class EnhancedMemoryService(MemoryService):
                 key_metrics = {'total_reviews': 0}
             
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        INSERT OR REPLACE INTO sentiment_evolution 
-                        (package_name, topic, time_period, sentiment_distribution, 
-                         key_metrics, trend_direction)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (
-                        package_name, topic, period_date,
-                        json.dumps(sentiment_distribution),
-                        json.dumps(key_metrics),
-                        trend_direction
-                    ))
-                    
-                    conn.commit()
+                cur = conn.cursor()
+                
+                # Gerar ID único
+                evolution_id = str(uuid.uuid4())
+                
+                cur.execute("""
+                    INSERT OR REPLACE INTO sentiment_evolution 
+                    (id, package_name, topic, time_period, sentiment_distribution, 
+                     key_metrics, trend_direction)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    evolution_id, package_name, topic, period_date,
+                    json.dumps(sentiment_distribution),
+                    json.dumps(key_metrics),
+                    trend_direction
+                ))
+                
+                conn.commit()
+                cur.close()
                     
         except Exception as e:
             raise Exception(f"Erro ao registrar evolução de sentimento: {str(e)}")
@@ -211,34 +223,37 @@ class EnhancedMemoryService(MemoryService):
         """Calcular direção da tendência comparando com período anterior"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT key_metrics FROM sentiment_evolution 
-                        WHERE package_name = ? AND topic = ?
-                        ORDER BY time_period DESC
-                        LIMIT 1
-                    """, (package_name, topic))
-                    
-                    result = cur.fetchone()
-                    if not result:
-                        return 'new'
-                    
-                    previous_metrics = json.loads(result['key_metrics'])
-                    prev_negative = previous_metrics.get('negative_ratio', 0)
-                    prev_positive = previous_metrics.get('positive_ratio', 0)
-                    
-                    # Calcular mudança
-                    negative_change = current_negative_ratio - prev_negative
-                    positive_change = current_positive_ratio - prev_positive
-                    
-                    if abs(negative_change) < 0.05 and abs(positive_change) < 0.05:
-                        return 'stable'
-                    elif negative_change > 0.1:
-                        return 'worsening'
-                    elif positive_change > 0.1:
-                        return 'improving'
-                    else:
-                        return 'slight_change'
+                cur = conn.cursor()
+                
+                cur.execute("""
+                    SELECT key_metrics FROM sentiment_evolution 
+                    WHERE package_name = ? AND topic = ?
+                    ORDER BY time_period DESC
+                    LIMIT 1
+                """, (package_name, topic))
+                
+                result = cur.fetchone()
+                cur.close()
+                
+                if not result:
+                    return 'new'
+                
+                previous_metrics = json.loads(result['key_metrics'])
+                prev_negative = previous_metrics.get('negative_ratio', 0)
+                prev_positive = previous_metrics.get('positive_ratio', 0)
+                
+                # Calcular mudança
+                negative_change = current_negative_ratio - prev_negative
+                positive_change = current_positive_ratio - prev_positive
+                
+                if abs(negative_change) < 0.05 and abs(positive_change) < 0.05:
+                    return 'stable'
+                elif negative_change > 0.1:
+                    return 'worsening'
+                elif positive_change > 0.1:
+                    return 'improving'
+                else:
+                    return 'slight_change'
                         
         except Exception:
             return 'unknown'
@@ -260,21 +275,26 @@ class EnhancedMemoryService(MemoryService):
                 effectiveness_score = after_score - before_score
             
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        INSERT INTO problem_solution_correlations 
-                        (problem_pattern, solution_implemented, backlog_item_id,
-                         sentiment_before, sentiment_after, effectiveness_score,
-                         time_to_impact_days)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        problem_pattern, solution, backlog_item_id,
-                        json.dumps(sentiment_before) if sentiment_before else None,
-                        json.dumps(sentiment_after) if sentiment_after else None,
-                        effectiveness_score, time_to_impact
-                    ))
-                    
-                    conn.commit()
+                cur = conn.cursor()
+                
+                # Gerar ID único
+                correlation_id = str(uuid.uuid4())
+                
+                cur.execute("""
+                    INSERT INTO problem_solution_correlations 
+                    (id, problem_pattern, solution_implemented, backlog_item_id,
+                     sentiment_before, sentiment_after, effectiveness_score,
+                     time_to_impact_days)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    correlation_id, problem_pattern, solution, backlog_item_id,
+                    json.dumps(sentiment_before) if sentiment_before else None,
+                    json.dumps(sentiment_after) if sentiment_after else None,
+                    effectiveness_score, time_to_impact
+                ))
+                
+                conn.commit()
+                cur.close()
                     
         except Exception as e:
             raise Exception(f"Erro ao registrar correlação problema-solução: {str(e)}")
@@ -283,31 +303,33 @@ class EnhancedMemoryService(MemoryService):
         """Obter soluções efetivas para um padrão de problema"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT 
-                            solution_implemented,
-                            effectiveness_score,
-                            time_to_impact_days,
-                            COUNT(*) as frequency
-                        FROM problem_solution_correlations 
-                        WHERE LOWER(problem_pattern) LIKE LOWER(?)
-                        AND effectiveness_score > 0.1
-                        GROUP BY solution_implemented, effectiveness_score, time_to_impact_days
-                        ORDER BY effectiveness_score DESC, frequency DESC
-                        LIMIT 5
-                    """, (f"%{problem_pattern}%",))
-                    
-                    solutions = []
-                    for row in cur.fetchall():
-                        solutions.append({
-                            'solution': row['solution_implemented'],
-                            'effectiveness_score': row['effectiveness_score'],
-                            'time_to_impact_days': row['time_to_impact_days'],
-                            'frequency': row['frequency']
-                        })
-                    
-                    return solutions
+                cur = conn.cursor()
+                
+                cur.execute("""
+                    SELECT 
+                        solution_implemented,
+                        effectiveness_score,
+                        time_to_impact_days,
+                        COUNT(*) as frequency
+                    FROM problem_solution_correlations 
+                    WHERE LOWER(problem_pattern) LIKE LOWER(?)
+                    AND effectiveness_score > 0.1
+                    GROUP BY solution_implemented, effectiveness_score, time_to_impact_days
+                    ORDER BY effectiveness_score DESC, frequency DESC
+                    LIMIT 5
+                """, (f"%{problem_pattern}%",))
+                
+                solutions = []
+                for row in cur.fetchall():
+                    solutions.append({
+                        'solution': row['solution_implemented'],
+                        'effectiveness_score': row['effectiveness_score'],
+                        'time_to_impact_days': row['time_to_impact_days'],
+                        'frequency': row['frequency']
+                    })
+                
+                cur.close()
+                return solutions
                     
         except Exception as e:
             raise Exception(f"Erro ao obter soluções efetivas: {str(e)}")
@@ -320,26 +342,31 @@ class EnhancedMemoryService(MemoryService):
         """Aprender padrão de otimização de backlog"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        INSERT OR REPLACE INTO backlog_optimization_patterns 
-                        (pattern_name, pattern_description, success_indicators,
-                         failure_indicators, optimization_rules, confidence_score,
-                         usage_count, last_used)
-                        VALUES (?, ?, ?, ?, ?, ?, 
-                                COALESCE((SELECT usage_count FROM backlog_optimization_patterns 
-                                         WHERE pattern_name = ?), 0) + 1,
-                                CURRENT_TIMESTAMP)
-                    """, (
-                        pattern_name, description,
-                        json.dumps(success_indicators),
-                        json.dumps(failure_indicators),
-                        json.dumps(optimization_rules),
-                        0.5,  # Confiança inicial
-                        pattern_name
-                    ))
-                    
-                    conn.commit()
+                cur = conn.cursor()
+                
+                # Gerar ID único
+                pattern_id = str(uuid.uuid4())
+                
+                cur.execute("""
+                    INSERT OR REPLACE INTO backlog_optimization_patterns 
+                    (id, pattern_name, pattern_description, success_indicators,
+                     failure_indicators, optimization_rules, confidence_score,
+                     usage_count, last_used)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 
+                            COALESCE((SELECT usage_count FROM backlog_optimization_patterns 
+                                     WHERE pattern_name = ?), 0) + 1,
+                            CURRENT_TIMESTAMP)
+                """, (
+                    pattern_id, pattern_name, description,
+                    json.dumps(success_indicators),
+                    json.dumps(failure_indicators),
+                    json.dumps(optimization_rules),
+                    0.5,  # Confiança inicial
+                    pattern_name
+                ))
+                
+                conn.commit()
+                cur.close()
                     
         except Exception as e:
             raise Exception(f"Erro ao aprender padrão de otimização: {str(e)}")
@@ -350,28 +377,30 @@ class EnhancedMemoryService(MemoryService):
             suggestions = []
             
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT * FROM backlog_optimization_patterns 
-                        ORDER BY confidence_score DESC, usage_count DESC
-                    """)
+                cur = conn.cursor()
+                
+                cur.execute("""
+                    SELECT * FROM backlog_optimization_patterns 
+                    ORDER BY confidence_score DESC, usage_count DESC
+                """)
+                
+                patterns = cur.fetchall()
+                cur.close()
+                
+                for pattern in patterns:
+                    # Analisar se o padrão se aplica ao backlog atual
+                    rules = json.loads(pattern['optimization_rules']) if pattern['optimization_rules'] else {}
                     
-                    patterns = cur.fetchall()
-                    
-                    for pattern in patterns:
-                        # Analisar se o padrão se aplica ao backlog atual
-                        rules = json.loads(pattern['optimization_rules']) if pattern['optimization_rules'] else {}
-                        
-                        if self._pattern_applies_to_backlog(rules, current_backlog):
-                            suggestions.append({
-                                'pattern_name': pattern['pattern_name'],
-                                'description': pattern['pattern_description'],
-                                'optimization_rules': rules,
-                                'confidence': pattern['confidence_score'],
-                                'usage_count': pattern['usage_count']
-                            })
-                    
-                    return suggestions[:5]  # Top 5 sugestões
+                    if self._pattern_applies_to_backlog(rules, current_backlog):
+                        suggestions.append({
+                            'pattern_name': pattern['pattern_name'],
+                            'description': pattern['pattern_description'],
+                            'optimization_rules': rules,
+                            'confidence': pattern['confidence_score'],
+                            'usage_count': pattern['usage_count']
+                        })
+                
+                return suggestions[:5]  # Top 5 sugestões
                     
         except Exception as e:
             raise Exception(f"Erro ao obter sugestões de otimização: {str(e)}")
@@ -407,38 +436,40 @@ class EnhancedMemoryService(MemoryService):
         """Obter tendências de sentimento para um aplicativo"""
         try:
             with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT 
-                            topic,
-                            time_period,
-                            key_metrics,
-                            trend_direction
-                        FROM sentiment_evolution 
-                        WHERE package_name = ? 
-                        AND time_period >= date('now', '-' || ? || ' days')
-                        ORDER BY topic, time_period
-                    """, (package_name, days))
+                cur = conn.cursor()
+                
+                cur.execute("""
+                    SELECT 
+                        topic,
+                        time_period,
+                        key_metrics,
+                        trend_direction
+                    FROM sentiment_evolution 
+                    WHERE package_name = ? 
+                    AND time_period >= date('now', '-' || ? || ' days')
+                    ORDER BY topic, time_period
+                """, (package_name, days))
+                
+                trends = {}
+                for row in cur.fetchall():
+                    topic = row['topic']
+                    if topic not in trends:
+                        trends[topic] = {
+                            'data_points': [],
+                            'current_trend': row['trend_direction']
+                        }
                     
-                    trends = {}
-                    for row in cur.fetchall():
-                        topic = row['topic']
-                        if topic not in trends:
-                            trends[topic] = {
-                                'data_points': [],
-                                'current_trend': row['trend_direction']
-                            }
-                        
-                        trends[topic]['data_points'].append({
-                            'date': row['time_period'],
-                            'metrics': json.loads(row['key_metrics']) if row['key_metrics'] else {}
-                        })
-                    
-                    return {
-                        'package_name': package_name,
-                        'period_days': days,
-                        'trends': trends
-                    }
+                    trends[topic]['data_points'].append({
+                        'date': row['time_period'],
+                        'metrics': json.loads(row['key_metrics']) if row['key_metrics'] else {}
+                    })
+                
+                cur.close()
+                return {
+                    'package_name': package_name,
+                    'period_days': days,
+                    'trends': trends
+                }
                     
         except Exception as e:
             raise Exception(f"Erro ao obter tendências de sentimento: {str(e)}")
@@ -524,5 +555,92 @@ class EnhancedMemoryService(MemoryService):
             return suggestions
             
         except Exception:
+            return []
+
+
+    def save_to_long_term_memory(self, user_id: str, content: str, 
+                               memory_type: str = "general",
+                               importance_score: float = 0.5,
+                               metadata: Dict[str, Any] = None):
+        """Salvar informação na memória de longo prazo"""
+        try:
+            with self._get_connection() as conn:
+                cur = conn.cursor()
+                
+                # Criar tabela de memória de longo prazo se não existir
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS long_term_memory (
+                        id TEXT PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        content TEXT NOT NULL,
+                        memory_type TEXT NOT NULL,
+                        importance_score REAL DEFAULT 0.5,
+                        metadata TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Gerar ID único
+                memory_id = str(uuid.uuid4())
+                
+                # Inserir na memória de longo prazo
+                cur.execute("""
+                    INSERT INTO long_term_memory 
+                    (id, user_id, content, memory_type, importance_score, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    memory_id, user_id, content, memory_type, importance_score,
+                    json.dumps(metadata) if metadata else None
+                ))
+                
+                conn.commit()
+                cur.close()
+                    
+        except Exception as e:
+            print(f"Erro ao salvar na memória de longo prazo: {e}")
+    
+    def get_long_term_memory(self, user_id: str = None, 
+                           memory_type: str = None,
+                           limit: int = 50) -> List[Dict[str, Any]]:
+        """Recuperar informações da memória de longo prazo"""
+        try:
+            with self._get_connection() as conn:
+                cur = conn.cursor()
+                
+                query = "SELECT * FROM long_term_memory WHERE 1=1"
+                params = []
+                
+                if user_id:
+                    query += " AND user_id = ?"
+                    params.append(user_id)
+                
+                if memory_type:
+                    query += " AND memory_type = ?"
+                    params.append(memory_type)
+                
+                query += " ORDER BY importance_score DESC, created_at DESC LIMIT ?"
+                params.append(limit)
+                
+                cur.execute(query, params)
+                
+                memories = []
+                for row in cur.fetchall():
+                    memories.append({
+                        'id': row['id'],
+                        'user_id': row['user_id'],
+                        'content': row['content'],
+                        'memory_type': row['memory_type'],
+                        'importance_score': row['importance_score'],
+                        'metadata': json.loads(row['metadata']) if row['metadata'] else {},
+                        'created_at': row['created_at'],
+                        'updated_at': row['updated_at']
+                    })
+                
+                cur.close()
+                return memories
+                    
+        except Exception as e:
+            print(f"Erro ao recuperar memória de longo prazo: {e}")
             return []
 

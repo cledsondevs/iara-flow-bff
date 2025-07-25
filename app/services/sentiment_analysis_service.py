@@ -5,6 +5,7 @@ import random
 from typing import List, Dict, Optional
 import os
 import google.generativeai as genai
+from app.config.settings import Config
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +15,9 @@ class SentimentAnalysisService:
         Inicializa o serviço de análise de sentimentos
         
         Args:
-            api_key: Chave da API do Gemini. Se não fornecida, tentará obter da variável de ambiente
+            api_key: Chave da API do Gemini. Se não fornecida, tentará obter da configuração
         """
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.api_key = api_key or Config.GEMINI_API_KEY
         
         if not self.api_key:
             logger.warning("GEMINI_API_KEY não configurada. Usando análise básica de fallback.")

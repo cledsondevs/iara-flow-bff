@@ -7,11 +7,12 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import sqlite3
 from contextlib import contextmanager
+from app.config.settings import Config
 
 
 class MemoryService:
     def __init__(self):
-        self.db_path = os.getenv("DB_PATH", "./data/iara_flow.db")
+        self.db_path = Config.DATABASE_PATH
         self._init_sqlite_tables()
     
     @contextmanager
