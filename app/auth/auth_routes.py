@@ -118,7 +118,25 @@ def login():
             )
             user = cur.fetchone()
             
-            if not user or not bcrypt.checkpw(password.encode("utf-8"), user[1].encode("utf-8")):
+            if not user:
+                return jsonify({"error": "Credenciais inválidas"}), 401
+            
+            # Verificar senha - tratamento mais robusto para diferentes formatos de hash
+            try:
+                stored_hash = user[1]
+                # Se o hash armazenado não é bytes, converter para bytes
+                if isinstance(stored_hash, str):
+                    stored_hash = stored_hash.encode('utf-8')
+                
+                # Verificar se a senha está correta
+                password_check = bcrypt.checkpw(password.encode("utf-8"), stored_hash)
+                
+                if not password_check:
+                    return jsonify({"error": "Credenciais inválidas"}), 401
+                    
+            except (ValueError, TypeError) as e:
+                # Se houver erro no formato do hash, retornar erro de credenciais inválidas
+                print(f"Erro ao verificar senha: {e}")
                 return jsonify({"error": "Credenciais inválidas"}), 401
             
             user_id = user[0]
