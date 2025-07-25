@@ -5,21 +5,17 @@ from typing import Dict, List, Optional, Any
 import google.generativeai as genai
 
 from app.services.memory_service import MemoryService
-from app.services.api_key_service import APIKeyService
 
 class GeminiAgentService:
     def __init__(self):
         self.memory_service = MemoryService()
-        self.api_key_service = APIKeyService()
 
     def process_message(self, user_message: str, user_id: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Processar mensagem do usuário com o agente Gemini"""
         try:
-            api_key = self.api_key_service.get_api_key(user_id, "gemini")
-            if not api_key:
-                raise ValueError("API key do Gemini não encontrada para este usuário.")
-
-            genai.configure(api_key=api_key)
+            # Usar chave padrão do sistema
+            default_key = "AIzaSyDpLNBaYVrLSzxWj0kLD3v7n75pR5O-AfM"
+            genai.configure(api_key=default_key)
             model = genai.GenerativeModel("gemini-1.5-flash")
             
             # Gerar session_id se não fornecido
