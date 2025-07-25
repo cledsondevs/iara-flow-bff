@@ -5,13 +5,13 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from app.services.memory_service import MemoryService
 from app.config.settings import Config
-from app.api.services.api_key_service import ApiKeyService
+from app.services.api_key_service import APIKeyService
 
 
 class GeminiChatService:
     def __init__(self):
         self.memory_service = MemoryService()
-        self.api_key_service = ApiKeyService()
+        self.api_key_service = APIKeyService()
         
         # Configurar modelo (a API key será configurada por usuário)
         self.model = genai.GenerativeModel("gemini-1.5-flash")
