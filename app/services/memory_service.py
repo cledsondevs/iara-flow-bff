@@ -299,32 +299,26 @@ class MemoryService:
         # Detectar nome do usuário
         message_lower = message.lower()
         
+        import re
         # Padrões para detectar nome
         name_patterns = [
-            "meu nome é ",
-            "me chamo ",
-            "sou o ",
-            "sou a ",
-            "eu sou ",
-            "meu nome eh ",
-            "me chamo de "
+            r"meu nome é ([\wÀ-ú]+)",
+            r"me chamo ([\wÀ-ú]+)",
+            r"sou o ([\wÀ-ú]+)",
+            r"sou a ([\wÀ-ú]+)",
+            r"eu sou ([\wÀ-ú]+)",
+            r"meu nome eh ([\wÀ-ú]+)",
+            r"me chamo de ([\wÀ-ú]+)"
         ]
         
         for pattern in name_patterns:
-            if pattern in message_lower:
-                # Encontrar o nome após o padrão
-                start_index = message_lower.find(pattern) + len(pattern)
-                remaining_text = message[start_index:].strip()
-                
-                # Pegar a primeira palavra como nome (assumindo que é o primeiro nome)
-                name_parts = remaining_text.split()
-                if name_parts:
-                    # Remover pontuação comum
-                    name = name_parts[0].rstrip('.,!?;')
-                    if name and len(name) > 1:  # Validação básica
-                        extracted_info["name"] = name.title()
-                        logger.info(f"Nome extraído da mensagem: {name.title()}")
-                        break
+            match = re.search(pattern, message_lower)
+            if match:
+                name = match.group(1).title()
+                if name and len(name) > 1:
+                    extracted_info["name"] = name
+                    logger.info(f"Nome extraído da mensagem: {name}")
+                    break
         
         # Detectar outras informações úteis
         if "trabalho como" in message_lower or "sou um" in message_lower or "sou uma" in message_lower:
@@ -352,13 +346,14 @@ class MemoryService:
             
             # Extrair informações do usuário da mensagem
             extracted_info = self.extract_user_info_from_message(message, response)
+            logger.info(f"Informações extraídas pela função: {extracted_info}")
             
             # Se encontrou informações, atualizar o perfil
             if extracted_info:
                 logger.info(f"Atualizando perfil com informações extraídas: {extracted_info}")
                 self.update_user_profile(user_id, extracted_info)
             else:
-                logger.info(f"Criando/Atualizando perfil vazio para o usuário: {user_id}")
+                logger.info(f"Nenhuma informação extraída. Criando/Atualizando perfil vazio para o usuário: {user_id}")
                 self.update_user_profile(user_id, {})
                 
         except Exception as e:
