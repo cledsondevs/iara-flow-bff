@@ -261,12 +261,24 @@ class MemoryService:
             with self._get_connection() as conn:
                 cur = conn.cursor()
                 
-                # Primeiro, tentar recuperar o perfil existente
-                current_profile = self.get_user_profile(user_id)
-                logger.info(f"PERFIL ATUAL: {current_profile['profile_data']}")
+                # Primeiro, tentar recuperar o perfil existente DENTRO DA MESMA CONEXÃO
+                cur.execute("""
+                    SELECT profile_data
+                    FROM user_profiles
+                    WHERE user_id = ?
+                """, (user_id,))
+                
+                result = cur.fetchone()
+                
+                current_profile_data = {}
+                if result:
+                    current_profile_data = json.loads(result['profile_data'])
+                    logger.info(f"PERFIL ATUAL: {current_profile_data}")
+                else:
+                    logger.info(f"Perfil não encontrado para mesclagem - User: {user_id}, iniciando com perfil vazio")
                 
                 # Mesclar os dados existentes com as atualizações
-                merged_profile = current_profile["profile_data"].copy()
+                merged_profile = current_profile_data.copy()
                 merged_profile.update(profile_updates)
                 
                 logger.info(f"PERFIL FINAL SALVO: {merged_profile}")
@@ -361,182 +373,176 @@ class MemoryService:
             raise Exception(f"Erro ao salvar mensagem com atualização de perfil: {str(e)}")
     
     def get_user_context_for_chat(self, user_id: str) -> str:
-        """Obter contexto do usuário para incluir no chat"""
+        """Obter contexto do usuário para o chat, incluindo histórico e perfil"""
         try:
-            logger.debug(f"Obtendo contexto do usuário para chat: {user_id}")
-            
-            profile = self.get_user_profile(user_id)
-            profile_data = profile["profile_data"]
-            
-            if not profile_data:
-                logger.debug(f"Nenhum contexto disponível para usuário: {user_id}")
-                return ""
+            logger.info(f"Obtendo contexto do usuário para chat - User: {user_id}")
             
             context_parts = []
             
-            if "name" in profile_data:
-                context_parts.append(f"O nome do usuário é {profile_data['name']}")
-                logger.debug(f"Contexto: nome do usuário = {profile_data['name']}")
-            
-            if "mentioned_profession" in profile_data:
-                context_parts.append("O usuário mencionou sua profissão anteriormente")
-                logger.debug("Contexto: profissão mencionada")
-            
-            if "mentioned_age" in profile_data:
-                context_parts.append("O usuário mencionou sua idade anteriormente")
-                logger.debug("Contexto: idade mencionada")
-            
-            # Adicionar fatos específicos salvos pelo usuário
-            if "user_facts" in profile_data and profile_data["user_facts"]:
-                facts_text = "; ".join(profile_data["user_facts"])
-                context_parts.append(f"Fatos importantes sobre o usuário: {facts_text}")
-                logger.debug(f"Contexto: {len(profile_data['user_facts'])} fatos do usuário")
-            
-            if context_parts:
-                context = "Informações sobre o usuário: " + "; ".join(context_parts) + "."
-                logger.info(f"Contexto gerado para usuário {user_id}: {len(context)} caracteres")
-                return context
-            
-            return ""
-            
-        except Exception as e:
-            logger.error(f"Erro ao obter contexto do usuário: {user_id}, Error: {str(e)}")
-            # Se houver erro, retornar string vazia para não quebrar o chat
-            return ""
-    
-    def save_user_fact(self, user_id: str, fact: str):
-        """Salvar um fato específico sobre o usuário"""
-        try:
-            logger.info(f"Salvando fato do usuário: {user_id}")
-            logger.info(f"FATO A SER SALVO: '{fact}'")
-            
-            # Recuperar perfil atual
-            profile = self.get_user_profile(user_id)
-            profile_data = profile["profile_data"].copy()
-            
-            # Inicializar lista de fatos se não existir
-            if "user_facts" not in profile_data:
-                profile_data["user_facts"] = []
-                logger.debug("Lista de fatos inicializada")
-            
-            logger.info(f"FATOS EXISTENTES ANTES: {profile_data.get('user_facts', [])}")
-            
-            # Adicionar o novo fato (evitar duplicatas)
-            if fact not in profile_data["user_facts"]:
-                profile_data["user_facts"].append(fact)
-                logger.info(f"FATO ADICIONADO À LISTA - Total de fatos agora: {len(profile_data['user_facts'])}")
-                
-                # Limitar a 10 fatos para evitar contexto muito longo
-                if len(profile_data["user_facts"]) > 10:
-                    removed_facts = profile_data["user_facts"][:-10]
-                    profile_data["user_facts"] = profile_data["user_facts"][-10:]
-                    logger.info(f"FATOS ANTIGOS REMOVIDOS (limite 10): {removed_facts}")
-                
-                logger.info(f"LISTA FINAL DE FATOS: {profile_data['user_facts']}")
-                
-                # Atualizar perfil
-                self.update_user_profile(user_id, profile_data)
-                logger.info(f"FATO SALVO COM SUCESSO - User: {user_id}, Fato: '{fact}'")
+            # 1. Adicionar informações do perfil do usuário
+            user_profile = self.get_user_profile(user_id)
+            if user_profile and user_profile["profile_data"]:
+                profile_str = json.dumps(user_profile["profile_data"], ensure_ascii=False)
+                context_parts.append(f"Informações do perfil do usuário: {profile_str}")
+                logger.info(f"Perfil do usuário adicionado ao contexto: {profile_str}")
             else:
-                logger.info(f"FATO JÁ EXISTE - Não foi duplicado - User: {user_id}, Fato: '{fact}'")
-                
-        except Exception as e:
-            logger.error(f"Erro ao salvar fato do usuário: {user_id}, Fato: '{fact}', Error: {str(e)}")
-            raise Exception(f"Erro ao salvar fato do usuário: {str(e)}")
-    
-    def detect_and_save_user_fact(self, user_message: str, user_id: str) -> tuple[str, bool]:
-        """Detectar se o usuário quer salvar um fato e extraí-lo"""
-        try:
-            logger.debug(f"Detectando fatos na mensagem do usuário: {user_id}")
-            logger.debug(f"MENSAGEM ANALISADA: '{user_message}'")
+                logger.info("Nenhum perfil de usuário encontrado para adicionar ao contexto.")
             
-            # Palavras-chave que indicam que o usuário quer salvar algo
-            trigger_phrases = [
-                "lembre-se disso:",
-                "lembre se disso:",
-                "salvar para depois:",
-                "minha memória:",
-                "lembrar:",
-                "não esqueça:",
-                "importante:",
-                "anotar:"
+            # 2. Adicionar histórico de conversas recentes (se houver)
+            # O session_id aqui pode precisar ser dinâmico, dependendo de como você gerencia as sessões.
+            # Por enquanto, vamos assumir que o contexto é para a sessão atual ou mais recente.
+            # Para um contexto mais robusto, você pode precisar passar o session_id para esta função.
+            # Por simplicidade, vamos pegar as últimas N conversas do usuário, independente da sessão.
+            
+            # Modificação: Para pegar o histórico de conversas, precisamos de um session_id.
+            # Se o objetivo é um contexto geral do usuário, talvez seja melhor pegar as últimas conversas
+            # independente da sessão, ou a última sessão ativa. Por enquanto, vamos deixar como está
+            # e considerar que o `session_id` será passado ou inferido em um nível superior.
+            
+            # Vamos adicionar um placeholder para o histórico de conversas, pois a função get_conversation_history
+            # requer um session_id. Para um contexto geral, talvez seja necessário uma nova função
+            # que recupere as últimas conversas de todas as sessões ou da sessão mais recente.
+            # Por enquanto, vamos focar no perfil do usuário.
+            
+            # Exemplo de como poderia ser se tivéssemos um session_id aqui:
+            # conversation_history = self.get_conversation_history(user_id, session_id, limit=5)
+            # if conversation_history:
+            #     history_str = "Histórico de conversas recentes:\n"
+            #     for entry in conversation_history:
+            #         history_str += f"Usuário: {entry['message']}\n"
+            #         history_str += f"Assistente: {entry['response']}\n"
+            #     context_parts.append(history_str)
+            #     logger.info("Histórico de conversas adicionado ao contexto.")
+            
+            full_context = "\n".join(context_parts)
+            logger.info(f"Contexto final do usuário para chat: {full_context[:200]}...")
+            return full_context
+            
+        except Exception as e:
+            logger.error(f"Erro ao obter contexto do usuário para chat: {user_id}, Error: {str(e)}")
+            raise Exception(f"Erro ao obter contexto do usuário para chat: {str(e)}")
+
+
+
+    
+    def detect_and_save_user_fact(self, message: str, user_id: str) -> tuple[str, bool]:
+        """Detectar comando 'Lembre-se disso' e salvar informação do usuário"""
+        try:
+            logger.info(f"Detectando comando de memória na mensagem - User: {user_id}")
+            
+            # Detectar comando "Lembre-se disso" ou variações
+            remember_patterns = [
+                "lembre-se disso",
+                "lembre disso",
+                "salve isso",
+                "guarde isso",
+                "memorize isso",
+                "anote isso"
             ]
             
-            message_lower = user_message.lower()
+            message_lower = message.lower()
+            fact_saved = False
+            processed_message = message
             
-            for phrase in trigger_phrases:
-                if phrase in message_lower:
-                    logger.info(f"FRASE-GATILHO DETECTADA: '{phrase}' - User: {user_id}")
+            for pattern in remember_patterns:
+                if pattern in message_lower:
+                    # Extrair a informação a ser lembrada
+                    # Remove o comando da mensagem
+                    fact_to_save = message_lower.replace(pattern, "").strip()
                     
-                    # Encontrar o índice onde começa o fato
-                    start_index = message_lower.find(phrase) + len(phrase)
-                    
-                    # Extrair o fato (tudo que vem depois da frase-gatilho)
-                    fact = user_message[start_index:].strip()
-                    
-                    if fact:  # Se há conteúdo para salvar
-                        logger.info(f"FATO EXTRAÍDO DA MENSAGEM: '{fact}' - User: {user_id}")
+                    if fact_to_save:
+                        # Salvar como fato do usuário no perfil
+                        timestamp = datetime.utcnow().isoformat()
+                        fact_key = f"user_fact_{timestamp}"
                         
-                        # Salvar o fato
-                        self.save_user_fact(user_id, fact)
+                        fact_data = {
+                            fact_key: {
+                                "content": fact_to_save,
+                                "saved_at": timestamp,
+                                "type": "user_fact"
+                            }
+                        }
                         
-                        # Remover a instrução da mensagem original
-                        cleaned_message = user_message[:message_lower.find(phrase)].strip()
-                        if not cleaned_message:
-                            cleaned_message = f"Entendi! Vou lembrar que {fact}"
+                        self.update_user_profile(user_id, fact_data)
+                        fact_saved = True
                         
-                        logger.info(f"MENSAGEM PROCESSADA: '{user_message}' -> '{cleaned_message}' - User: {user_id}")
-                        return cleaned_message, True
+                        # Modificar a mensagem para não incluir o comando
+                        processed_message = fact_to_save
+                        
+                        logger.info(f"Fato do usuário salvo - User: {user_id}, Fact: {fact_to_save}")
+                    break
             
-            logger.debug(f"Nenhuma frase-gatilho detectada - User: {user_id}")
-            return user_message, False
+            return processed_message, fact_saved
             
         except Exception as e:
-            logger.error(f"Erro ao detectar e salvar fato do usuário: {user_id}, Mensagem: '{user_message}', Error: {str(e)}")
-            # Em caso de erro, retornar mensagem original
-            return user_message, False
+            logger.error(f"Erro ao detectar e salvar fato do usuário - User: {user_id}, Error: {str(e)}")
+            return message, False
     
-    def get_user_facts(self, user_id: str) -> list:
-        """Recuperar todos os fatos salvos sobre o usuário"""
+    def get_user_facts(self, user_id: str) -> List[Dict]:
+        """Recuperar fatos salvos do usuário"""
         try:
             logger.info(f"Recuperando fatos do usuário: {user_id}")
             
-            profile = self.get_user_profile(user_id)
-            profile_data = profile["profile_data"]
+            user_profile = self.get_user_profile(user_id)
+            facts = []
             
-            facts = profile_data.get("user_facts", [])
+            if user_profile and user_profile["profile_data"]:
+                profile_data = user_profile["profile_data"]
+                
+                for key, value in profile_data.items():
+                    if key.startswith("user_fact_") and isinstance(value, dict):
+                        facts.append({
+                            "id": key,
+                            "content": value.get("content", ""),
+                            "saved_at": value.get("saved_at", ""),
+                            "type": value.get("type", "user_fact")
+                        })
+            
             logger.info(f"Fatos recuperados - User: {user_id}, Total: {len(facts)}")
-            
             return facts
             
         except Exception as e:
-            logger.error(f"Erro ao recuperar fatos do usuário: {user_id}, Error: {str(e)}")
+            logger.error(f"Erro ao recuperar fatos do usuário - User: {user_id}, Error: {str(e)}")
             return []
     
-    def remove_user_fact(self, user_id: str, fact_index: int) -> bool:
-        """Remover um fato específico do usuário pelo índice"""
+    def delete_user_fact(self, user_id: str, fact_id: str) -> bool:
+        """Deletar um fato específico do usuário"""
         try:
-            logger.info(f"Removendo fato do usuário: {user_id}, Índice: {fact_index}")
+            logger.info(f"Deletando fato do usuário - User: {user_id}, Fact ID: {fact_id}")
             
-            profile = self.get_user_profile(user_id)
-            profile_data = profile["profile_data"].copy()
+            user_profile = self.get_user_profile(user_id)
             
-            logger.info(f"FATOS ANTES DA REMOÇÃO: {profile_data.get('user_facts', [])}")
-            
-            if "user_facts" in profile_data and 0 <= fact_index < len(profile_data["user_facts"]):
-                removed_fact = profile_data["user_facts"].pop(fact_index)
+            if user_profile and user_profile["profile_data"]:
+                profile_data = user_profile["profile_data"].copy()
                 
-                logger.info(f"FATO REMOVIDO: '{removed_fact}' (índice {fact_index})")
-                logger.info(f"FATOS APÓS REMOÇÃO: {profile_data['user_facts']}")
-                
-                self.update_user_profile(user_id, profile_data)
-                
-                logger.info(f"REMOÇÃO CONCLUÍDA COM SUCESSO - User: {user_id}")
-                return True
+                if fact_id in profile_data:
+                    del profile_data[fact_id]
+                    
+                    # Atualizar o perfil sem o fato deletado
+                    with self._get_connection() as conn:
+                        cur = conn.cursor()
+                        cur.execute("""
+                            UPDATE user_profiles 
+                            SET profile_data = ?, updated_at = ?
+                            WHERE user_id = ?
+                        """, (
+                            json.dumps(profile_data),
+                            datetime.utcnow().isoformat(),
+                            user_id
+                        ))
+                        conn.commit()
+                        cur.close()
+                    
+                    logger.info(f"Fato deletado com sucesso - User: {user_id}, Fact ID: {fact_id}")
+                    return True
+                else:
+                    logger.warning(f"Fato não encontrado - User: {user_id}, Fact ID: {fact_id}")
+                    return False
             else:
-                logger.warning(f"ÍNDICE INVÁLIDO para remoção de fato - User: {user_id}, Índice: {fact_index}, Fatos disponíveis: {len(profile_data.get('user_facts', []))}")
+                logger.warning(f"Perfil não encontrado para deletar fato - User: {user_id}")
                 return False
                 
         except Exception as e:
-            logger.error(f"Erro ao remover fato do usuário: {user_id}, Índice: {fact_index}, Error: {str(e)}")
+            logger.error(f"Erro ao deletar fato do usuário - User: {user_id}, Fact ID: {fact_id}, Error: {str(e)}")
             return False
+
