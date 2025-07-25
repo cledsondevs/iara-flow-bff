@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class MemoryService:
     def __init__(self):
         self.db_path = Config.DATABASE_PATH
-        logger.info(f"Inicializando MemoryService com database path: {self.db_path}")
+        logger.info(f"Cledson - Inicializando MemoryService com database path: {self.db_path}")
         
         # Garantir que o diretório do banco existe
         db_dir = os.path.dirname(self.db_path)
