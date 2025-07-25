@@ -17,6 +17,10 @@ class GeminiChatService:
     def process_message(self, user_message: str, user_id: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Processar mensagem do usuário com o Gemini"""
         try:
+            # Garantir que session_id não seja None
+            if session_id is None or session_id == "":
+                session_id = str(uuid.uuid4())
+            
             # Usar chave padrão do sistema diretamente
             default_key = "AIzaSyDpLNBaYVrLSzxWj0kLD3v7n75pR5O-AfM"
             print(f"Usando chave Gemini padrão para usuário {user_id}")
