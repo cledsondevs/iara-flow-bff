@@ -15,7 +15,7 @@ from langchain_community.tools.file_management import (
     ListDirectoryTool,
 )
 
-from app.services.memory_service import MemoryService
+from app.services.isolated_memory_service import IsolatedMemoryService
 from app.services.api_key_service import APIKeyService
 
 class LangChainAgentService:
