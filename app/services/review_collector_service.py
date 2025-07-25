@@ -15,8 +15,8 @@ from app.config.settings import Config
 
 class ReviewCollectorService:
     def __init__(self):
-        self.database_path = Config.DATABASE_PATH
-        self.api_base_url = "https://bff-analyse.vercel.app/api/apps"
+        self.database_path = "./data/iara_flow.db"
+        self.api_base_url = "http://200.98.64.133:5000/api/scraping/google-play"
         self._create_tables()
     
     @contextmanager
