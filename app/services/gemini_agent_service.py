@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Any
 import google.generativeai as genai
 
 from app.services.memory_service import MemoryService
+from app.config.settings import Config
 
 class GeminiAgentService:
     def __init__(self):
@@ -14,8 +15,7 @@ class GeminiAgentService:
         """Processar mensagem do usuário com o agente Gemini"""
         try:
             # Usar chave padrão do sistema
-            default_key = "AIzaSyBPHQNceQTWTQ15D5TJlu_L2Gcd5uNODUk"
-            genai.configure(api_key=default_key)
+            genai.configure(api_key=Config.GEMINI_API_KEY)
             model = genai.GenerativeModel("gemini-1.5-flash")
             
             # Gerar session_id se não fornecido
@@ -64,7 +64,7 @@ class GeminiAgentService:
         # Adicionar histórico da conversa
         if chat_history:
             context += "Histórico da conversa:\n"
-            for entry in chat_history[-5:]:  # Últimas 5 mensagens
+            for entry in chat_history[-20:]:  # Últimas 20 mensagens
                 if entry.get("type") == "human":
                     context += f"Usuário: {entry.get('content', '')}\n"
                 elif entry.get("type") == "ai":

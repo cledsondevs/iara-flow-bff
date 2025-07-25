@@ -358,7 +358,8 @@ class MemoryService:
                 logger.info(f"Atualizando perfil com informações extraídas: {extracted_info}")
                 self.update_user_profile(user_id, extracted_info)
             else:
-                logger.debug("Nenhuma informação de perfil para atualizar")
+                logger.info(f"Criando/Atualizando perfil vazio para o usuário: {user_id}")
+                self.update_user_profile(user_id, {})
                 
         except Exception as e:
             logger.error(f"Erro ao salvar mensagem com atualização de perfil - User: {user_id}, Error: {str(e)}")
