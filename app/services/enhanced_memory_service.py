@@ -35,7 +35,8 @@ class EnhancedMemoryService(MemoryService):
                         frequency INTEGER DEFAULT 1,
                         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         metadata TEXT,
-                        UNIQUE(package_name, pattern_type, json_extract(pattern_data, '$.key'))
+                        pattern_key TEXT,
+                        UNIQUE(package_name, pattern_type, pattern_key)
                     )
                 """)
                 
@@ -109,15 +110,15 @@ class EnhancedMemoryService(MemoryService):
                 
                 cur.execute("""
                     INSERT OR REPLACE INTO review_sentiment_patterns 
-                    (id, package_name, pattern_type, pattern_data, confidence_score, frequency, last_updated)
+                    (id, package_name, pattern_type, pattern_data, confidence_score, frequency, pattern_key, last_updated)
                     VALUES (?, ?, ?, ?, ?, 
                             COALESCE((SELECT frequency FROM review_sentiment_patterns 
                                      WHERE package_name = ? AND pattern_type = ? 
-                                     AND json_extract(pattern_data, '$.key') = ?), 0) + 1,
-                            CURRENT_TIMESTAMP)
+                                     AND pattern_key = ?), 0) + 1,
+                            ?, CURRENT_TIMESTAMP)
                 """, (
                     pattern_id, package_name, pattern_type, json.dumps(pattern_data),
-                    confidence, package_name, pattern_type, pattern_key
+                    confidence, package_name, pattern_type, pattern_key, pattern_key
                 ))
                 
                 conn.commit()
