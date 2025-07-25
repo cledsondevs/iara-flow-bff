@@ -20,7 +20,7 @@ from app.services.api_key_service import APIKeyService
 
 class LangChainAgentService:
     def __init__(self):
-        self.memory_service = MemoryService()
+        self.memory_service = IsolatedMemoryService()
         
         # Configurar ferramentas disponíveis para o agente
         self.tools = self._setup_tools()
