@@ -8,10 +8,17 @@ import os
 auth_bp = Blueprint('auth', __name__)
 
 # Configuração do banco de dados
-DATABASE_PATH = os.getenv('DB_PATH', './data/iara_flow.db')
+from app.config.settings import Config
+DATABASE_PATH = Config.DATABASE_PATH
 
 def get_db_connection():
     """Estabelece conexão com o banco de dados SQLite"""
+    # Garantir que o diretório do banco existe
+    db_dir = os.path.dirname(DATABASE_PATH)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+        print(f"Diretório criado: {db_dir}")
+    
     conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row  # Para retornar resultados como dicionários
     return conn
@@ -55,7 +62,7 @@ def init_auth_tables():
 # Inicializar tabelas ao importar o módulo
 init_auth_tables()
 
-@auth_bp.route('/api/auth/register', methods=['POST'])
+@auth_bp.route("/register", methods=["POST"])
 def register():
     """Endpoint para registro de novos usuários"""
     try:
@@ -146,7 +153,7 @@ def login():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@auth_bp.route('/api/auth/logout', methods=['POST'])
+@auth_bp.route("/logout", methods=["POST"])
 def logout():
     """Endpoint para logout de usuários"""
     try:
@@ -174,7 +181,7 @@ def logout():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@auth_bp.route('/api/auth/verify', methods=['POST'])
+@auth_bp.route("/verify", methods=["POST"])
 def verify_session():
     """Endpoint para verificar se uma sessão é válida"""
     try:
@@ -216,7 +223,7 @@ def verify_session():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@auth_bp.route('/api/auth/user/<int:user_id>', methods=['GET'])
+@auth_bp.route("/user/<int:user_id>", methods=["GET"])
 def get_user(user_id):
     """Endpoint para obter informações do usuário"""
     try:

@@ -43,6 +43,41 @@ def create_app(config_name='default'):
     except Exception as e:
         print(f"Erro ao inicializar MemoryService: {e}")
     
+    # Criar usuário padrão se não existir
+    try:
+        from app.auth.auth_routes import get_db_connection
+        import bcrypt
+        
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Verificar se já existe um usuário admin
+        cur.execute("SELECT id FROM users WHERE username = ?", ("admin",))
+        existing_user = cur.fetchone()
+        
+        if not existing_user:
+            # Criar usuário padrão
+            username = "admin"
+            password = "admin"
+            email = "admin@iaraflow.com"
+            
+            # Hash da senha
+            password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
+            # Inserir usuário
+            cur.execute(
+                "INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)",
+                (username, password_hash, email)
+            )
+            conn.commit()
+            print(f"Usuário padrão criado: {username}/{password}")
+        
+        cur.close()
+        conn.close()
+        
+    except Exception as e:
+        print(f"Erro ao criar usuário padrão: {e}")
+    
     # Registrar blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(agent_bp, url_prefix="/api")

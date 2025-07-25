@@ -12,7 +12,12 @@ from app.config.settings import Config
 
 class MemoryService:
     def __init__(self):
-        self.db_path = "./data/iara_flow.db"
+        self.db_path = Config.DATABASE_PATH
+        # Garantir que o diretório do banco existe
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+            print(f"Diretório criado: {db_dir}")
         self._init_sqlite_tables()
     
     @contextmanager
