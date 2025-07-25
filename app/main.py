@@ -35,13 +35,37 @@ def create_app(config_name='default'):
     except Exception as e:
         print(f"Erro ao inicializar banco de dados: {e}")
     
-    # Inicializar MemoryService para garantir que as tabelas sejam criadas
+    # Criar usuário padrão se não existir
     try:
-        from app.services.memory_service import MemoryService
-        memory_service = MemoryService()
-        print("MemoryService inicializado com sucesso")
+        from app.auth.auth_routes import get_db_connection
+        import bcrypt
+        
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            
+            # Verificar se já existe um usuário admin
+            cur.execute("SELECT id FROM users WHERE username = ?", ("admin",))
+            existing_user = cur.fetchone()
+            
+            if not existing_user:
+                # Criar usuário padrão
+                username = "admin"
+                password = "admin"
+                email = "admin@iaraflow.com"
+                
+                # Hash da senha
+                password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+                
+                # Inserir usuário
+                cur.execute(
+                    "INSERT INTO users (username, password_hash, email) VALUES (?, ?, ?)",
+                    (username, password_hash, email)
+                )
+                conn.commit()
+                print(f"Usuário padrão criado: {username}/{password}")
+            
     except Exception as e:
-        print(f"Erro ao inicializar MemoryService: {e}")
+        print(f"Erro ao criar usuário padrão: {e}")
     
     # Registrar blueprints
     app.register_blueprint(auth_bp, url_prefix="/api/auth")

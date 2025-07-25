@@ -7,6 +7,103 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+- **Problema crítico de bloqueio do banco de dados SQLite resolvido**
+  - Implementado gerenciamento adequado de conexões usando context managers
+  - Corrigidas todas as funções de autenticação para usar `with get_db_connection()`
+  - Eliminados vazamentos de conexão que causavam bloqueios
+  - Adicionado script `fix_database_lock.py` para diagnóstico e correção de bloqueios
+
+- **APIs de Login totalmente funcionais**
+  - Corrigidas rotas de autenticação com prefixos incorretos
+  - Resolvido erro "405 METHOD NOT ALLOWED" 
+  - Todas as rotas de autenticação agora funcionam corretamente:
+    - `POST /api/auth/register` - Registro de usuários
+    - `POST /api/auth/login` - Login de usuários  
+    - `POST /api/auth/logout` - Logout de usuários
+    - `POST /api/auth/verify` - Verificação de sessão
+    - `GET /api/auth/user/<id>` - Obter dados do usuário
+
+- **Sistema de configuração de chaves de API restaurado**
+  - Corrigidas rotas de API keys: `POST /api/keys` e `GET /api/keys/<user_id>/<service_name>`
+  - Adicionados imports necessários no arquivo `api_key_routes.py`
+  - Sistema de armazenamento e recuperação de chaves funcionando
+
+- **Tabelas de memória de longo prazo criadas corretamente**
+  - Corrigida criação automática das tabelas `conversations` e `user_profiles`
+  - MemoryService agora usa configuração centralizada do banco
+  - Criação automática do diretório `data/` se não existir
+  - Sincronização entre todos os serviços de banco de dados
+
+- **Configuração de banco de dados unificada**
+  - Unificada configuração em `Config.DATABASE_PATH`
+  - Consistência entre todos os arquivos (`auth_routes.py`, `memory_service.py`, `database.py`)
+  - Criação automática de diretórios em todos os pontos de acesso
+
+- **Usuário padrão criado automaticamente**
+  - Criação automática de usuário administrador na inicialização
+  - **Credenciais:** `admin` / `admin` (email: `admin@iaraflow.com`)
+  - Script independente `create_default_user.py` para criação manual
+
+- **Dependências instaladas e configuradas**
+  - Instaladas todas as dependências necessárias: Flask, LangChain, Google AI, etc.
+  - Aplicação Flask inicializa corretamente sem erros de módulos
+  - Todas as funcionalidades principais testadas e funcionando
+
+### Technical Details
+- Implementado padrão de context manager para conexões SQLite
+- Eliminados bloqueios de banco através de gerenciamento adequado de recursos
+- Corrigidas estruturas try/except aninhadas que causavam problemas de sintaxe
+- Adicionado tratamento robusto de erros em todas as operações de banco
+
+### Testing
+- ✅ Login com usuário padrão (admin/admin) funcionando
+- ✅ Registro de novos usuários funcionando  
+- ✅ Verificação de sessão funcionando
+- ✅ Obtenção de dados de usuário funcionando
+- ✅ Configuração de chaves de API funcionando
+- ✅ Recuperação de chaves de API funcionando
+- ✅ Banco de dados sem bloqueios
+  - Criação automática do diretório `data/` se não existir
+  - Tabelas `conversations` e `user_profiles` criadas corretamente na inicialização
+  - Sincronização entre `init_database()` e `MemoryService._init_sqlite_tables()`
+
+- **Configuração de Banco de Dados**: Unificada configuração de caminho do banco
+  - Todos os serviços agora usam `Config.DATABASE_PATH` ao invés de caminhos hardcoded
+  - Criação automática do diretório do banco em todos os pontos de acesso
+  - Consistência entre `auth_routes.py`, `memory_service.py` e `database.py`
+
+### Added
+- **Usuário Padrão**: Criação automática de usuário administrador na inicialização
+  - Username: `admin`
+  - Password: `admin`
+  - Email: `admin@iaraflow.com`
+  - Criado automaticamente se não existir durante a inicialização da aplicação
+  - Script independente `create_default_user.py` para criação manual
+
+### Changed
+- **Inicialização da Aplicação**: Melhorada sequência de inicialização
+  - Banco de dados inicializado primeiro
+  - MemoryService inicializado em seguida
+  - Usuário padrão criado automaticamente
+  - Logs informativos para cada etapa da inicialização
+
+### Technical Details
+- **Arquivos modificados**:
+  - `app/auth/auth_routes.py` - Corrigidas rotas e configuração de banco
+  - `app/services/memory_service.py` - Unificada configuração de banco e criação de diretório
+  - `app/main.py` - Adicionada criação automática de usuário padrão
+  - `app/utils/database.py` - Mantida consistência na configuração
+
+- **Arquivos criados**:
+  - `create_default_user.py` - Script para criação manual de usuário padrão
+
+### Notes
+- As APIs de autenticação agora funcionam corretamente com os endpoints esperados
+- O sistema de memória de longo prazo está totalmente funcional
+- Usuário padrão permite acesso imediato ao sistema após instalação
+- Todas as configurações de banco de dados estão centralizadas em `Config.DATABASE_PATH`
+
 ### Added
 - **Memória de Longo Prazo para Chats**: Implementação de sistema de memória persistente para os endpoints de chat Gemini e OpenAI
   - Novo endpoint `/api/gemini/chat` com memória de longo prazo

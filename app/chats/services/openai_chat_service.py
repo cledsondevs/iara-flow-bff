@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 from openai import OpenAI
 from app.services.memory_service import MemoryService
+from app.services.api_key_service import APIKeyService
 
 
 class OpenAIChatService:
