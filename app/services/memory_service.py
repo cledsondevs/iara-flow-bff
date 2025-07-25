@@ -64,7 +64,7 @@ class MemoryService:
         except Exception as e:
             print(f"Erro ao inicializar tabelas SQLite: {e}")
     
-    def save_message(self, user_id: str, session_id: str, message: str, response: str, metadata: Optional[Dict] = None):
+    def save_conversation(self, user_id: str, session_id: str, message: str, response: str, metadata: Optional[Dict] = None):
         """Salvar conversa no SQLite"""
         try:
             with self._get_connection() as conn:
@@ -242,7 +242,7 @@ class MemoryService:
         """Salvar mensagem e atualizar perfil do usuário automaticamente"""
         try:
             # Salvar a mensagem normalmente
-            self.save_message(user_id, session_id, message, response, metadata)
+            self.save_conversation(user_id, session_id, message, response, metadata)
             
             # Extrair informações do usuário da mensagem
             extracted_info = self.extract_user_info_from_message(message, response)

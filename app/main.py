@@ -1,7 +1,3 @@
-
-"""
-Aplicação principal do Iara Flow BFF
-"""
 import os
 import sys
 from flask import Flask, send_from_directory
@@ -12,16 +8,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.config.settings import config
 from app.utils.database import init_database
-from app.auth.routes import auth_bp
+from app.auth.auth_routes import auth_bp
 from app.api.routes.agent_routes import agent_bp
 from app.api.routes.gemini_agent_routes import gemini_agent_bp
 from app.api.routes.openai_agent_routes import openai_agent_bp
 from app.api.routes.review_agent_routes import review_agent_bp
 from app.api.routes.data_analysis_routes import data_analysis_bp
 from app.api.routes.dashboard_routes import dashboard_bp
-from app.api.routes.chat_routes import chat_bp
-
-
+from app.chats.routes.chat_routes import chat_bp
 def create_app(config_name='default'):
     """Factory function para criar a aplicação Flask"""
     app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
@@ -30,7 +24,7 @@ def create_app(config_name='default'):
     app.config.from_object(config[config_name])
     
     # Configurar CORS
-    CORS(app, origins=app.config['CORS_ORIGINS'])
+    CORS(app, origins=app.config["CORS_ORIGINS"])
     
     # Inicializar banco de dados
     try:
@@ -91,5 +85,9 @@ def main():
     )
 if __name__ == "__main__":
     main()
+
+
+
+
 
 

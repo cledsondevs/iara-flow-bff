@@ -11,7 +11,7 @@ import sqlite3
 import numpy as np
 
 from langchain_openai import OpenAIEmbeddings
-from src.services.memory_service import MemoryService
+from app.services.memory_service import MemoryService
 
 class EnhancedMemoryService(MemoryService):
     def __init__(self):

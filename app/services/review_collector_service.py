@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import sqlite3
 
-from src.models.review_models import Review, StoreType, AppConfig
+from app.models.review_models import Review, StoreType, AppConfig
 
 class ReviewCollectorService:
     def __init__(self):

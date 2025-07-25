@@ -12,7 +12,7 @@ import sqlite3
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
-from src.models.review_models import BacklogItem, SentimentType
+from app.models.review_models import BacklogItem, SentimentType
 
 class BacklogGeneratorService:
     def __init__(self):

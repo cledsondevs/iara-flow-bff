@@ -120,8 +120,6 @@ def init_database():
                 UNIQUE(package_name, topic)
             )
         """)
-
-        # Tabela de itens de backlog
         cur.execute("""
             CREATE TABLE IF NOT EXISTS backlog_items (
                 id TEXT PRIMARY KEY,
