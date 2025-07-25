@@ -148,26 +148,29 @@ def create_sample_api_keys():
     """Criar chaves de API de exemplo"""
     print("Criando configurações de API de exemplo...")
     
+    # Chave Gemini padrão fornecida pelo usuário
+    default_gemini_key = "AIzaSyDpLNBaYVrLSzxWj0kLD3v7n75pR5O-AfM"
+    
     api_configs = [
         {
             "id": generate_uuid(),
-            "user_id": "demo_user",
+            "user_id": "1",  # admin
             "service": "gemini",
-            "api_key": "demo_gemini_key_placeholder",
+            "api_key": default_gemini_key,
             "is_active": True
         },
         {
             "id": generate_uuid(),
             "user_id": "demo_user",
-            "service": "openai",
-            "api_key": "demo_openai_key_placeholder",
+            "service": "gemini",
+            "api_key": default_gemini_key,
             "is_active": True
         },
         {
             "id": generate_uuid(),
             "user_id": "test_user",
             "service": "gemini",
-            "api_key": "test_gemini_key_placeholder",
+            "api_key": default_gemini_key,
             "is_active": True
         }
     ]
@@ -191,6 +194,7 @@ def create_sample_api_keys():
             
             conn.commit()
             print(f"✅ {len(api_configs)} configurações de API criadas com sucesso!")
+            print(f"   Chave Gemini padrão configurada para todos os usuários: {default_gemini_key[:20]}...")
             
     except Exception as e:
         print(f"❌ Erro ao criar configurações de API: {e}")
