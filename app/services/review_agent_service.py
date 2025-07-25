@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Any
 from app.services.review_collector_service import ReviewCollectorService
 from app.services.sentiment_analysis_service import SentimentAnalysisService
 from app.services.backlog_generator_service import BacklogGeneratorService
-from app.services.enhanced_memory_service import EnhancedMemoryService
+from app.services.isolated_memory_service import IsolatedMemoryService
 from app.models.review_models import StoreType
 
 class ReviewAgentService:
@@ -21,7 +21,7 @@ class ReviewAgentService:
         self.collector = ReviewCollectorService()
         self.analyzer = SentimentAnalysisService()
         self.backlog_generator = BacklogGeneratorService()
-        self.memory = EnhancedMemoryService()
+        self.memory = IsolatedMemoryService()
         
         self.is_running = False
         self.scheduler_thread = None
