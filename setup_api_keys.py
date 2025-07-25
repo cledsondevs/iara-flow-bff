@@ -14,9 +14,9 @@ def setup_api_keys():
     
     # SUBSTITUA PELAS SUAS CHAVES REAIS
     api_keys = {
-        "gemini": "YOUR_GEMINI_API_KEY_HERE",
-        "openai": "YOUR_OPENAI_API_KEY_HERE", 
-        "groq": "YOUR_GROQ_API_KEY_HERE"
+        "gemini": "",
+        "openai": "", 
+        "groq": ""
     }
     
     # Usuário padrão para testes

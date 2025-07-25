@@ -11,10 +11,11 @@ import sqlite3
 from contextlib import contextmanager
 
 from app.models.review_models import Review, StoreType, AppConfig
+from app.config.settings import Config
 
 class ReviewCollectorService:
     def __init__(self):
-        self.database_path = os.getenv("DB_PATH", os.path.abspath("./data/iara_flow.db"))
+        self.database_path = Config.DATABASE_PATH
         self.api_base_url = "https://bff-analyse.vercel.app/api/apps"
         self._create_tables()
     

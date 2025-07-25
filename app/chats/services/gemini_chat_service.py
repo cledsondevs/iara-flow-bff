@@ -4,6 +4,7 @@ import google.generativeai as genai
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from app.services.memory_service import MemoryService
+from app.config.settings import Config
 
 
 class GeminiChatService:
@@ -11,9 +12,9 @@ class GeminiChatService:
         self.memory_service = MemoryService()
         
         # Configurar API do Gemini
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = Config.GEMINI_API_KEY
         if not api_key:
-            raise ValueError("GEMINI_API_KEY não encontrada nas variáveis de ambiente")
+            raise ValueError("GEMINI_API_KEY não encontrada nas configurações")
         
         genai.configure(api_key=api_key)
         

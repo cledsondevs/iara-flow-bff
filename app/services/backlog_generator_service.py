@@ -13,15 +13,16 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 from app.models.review_models import BacklogItem, SentimentType
+from app.config.settings import Config
 
 class BacklogGeneratorService:
     def __init__(self):
-        self.database_path = os.getenv("DB_PATH", "./data/iara_flow.db")
+        self.database_path = Config.DATABASE_PATH
         
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0.3,
-            openai_api_key=os.getenv("OPENAI_API_KEY")
+            openai_api_key=Config.OPENAI_API_KEY
         )
         
         self._setup_prompts()

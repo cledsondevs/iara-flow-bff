@@ -168,3 +168,7 @@ def init_database():
     except Exception as e:
         print(f"Erro ao inicializar banco de dados: {e}")
         raise
+        
+    except Exception as e:
+        print(f"Erro ao inicializar banco de dados: {e}")
+        raise
