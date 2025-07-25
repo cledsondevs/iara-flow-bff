@@ -134,7 +134,7 @@ pyproject_hooks==1.2.0
 pyreqwest_impersonate==0.5.3
 python-bidi==0.6.6
 python-dateutil==2.9.0.post0
-python-dotenv==1.1.1
+
 pytz==2025.2
 PyYAML==6.0.2
 referencing==0.36.2
@@ -188,5 +188,4 @@ yarl==1.20.1
 zipp==3.23.0
 zopfli==0.2.3.post1
 
-# groq==0.13.0  # TEMPORARIAMENTE DESABILITADO
-
+groq==0.13.0

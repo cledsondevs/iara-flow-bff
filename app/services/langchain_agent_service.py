@@ -7,7 +7,6 @@ from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain.memory import ConversationBufferWindowMemory
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.tools.file_management import (
@@ -17,28 +16,14 @@ from langchain_community.tools.file_management import (
 )
 
 from app.services.memory_service import MemoryService
+from app.services.api_key_service import APIKeyService
 
 class LangChainAgentService:
     def __init__(self):
         self.memory_service = MemoryService()
-        self.llm = ChatOpenAI(
-            model="gpt-4.1-mini",
-            temperature=0.7,
-            openai_api_key=os.getenv("OPENAI_API_KEY")
-        )
         
         # Configurar ferramentas disponíveis para o agente
         self.tools = self._setup_tools()
-        
-        # Configurar prompt do agente
-        self.prompt = self._setup_prompt()
-        
-        # Criar o agente
-        self.agent = create_openai_tools_agent(
-            llm=self.llm,
-            tools=self.tools,
-            prompt=self.prompt
-        )
         
     def _setup_tools(self) -> List:
         """Configurar ferramentas disponíveis para o agente"""
@@ -83,6 +68,17 @@ Seja proativo e use as ferramentas quando apropriado para fornecer informações
     def process_message(self, user_message: str, user_id: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Processar mensagem do usuário com o agente"""
         try:
+            api_key_service = APIKeyService()
+            openai_api_key = api_key_service.get_api_key(user_id, "openai")
+            if not openai_api_key:
+                raise ValueError("API key do OpenAI não encontrada para este usuário.")
+
+            llm = ChatOpenAI(
+                model="gpt-4o-mini",
+                temperature=0.7,
+                openai_api_key=openai_api_key
+            )
+            
             # Gerar session_id se não fornecido
             if not session_id:
                 session_id = str(uuid.uuid4())
@@ -97,7 +93,7 @@ Seja proativo e use as ferramentas quando apropriado para fornecer informações
             prompt = self._setup_prompt(user_context)
             
             # Recriar agente com novo prompt
-            agent = create_openai_tools_agent(self.llm, self.tools, prompt)
+            agent = create_openai_tools_agent(llm, self.tools, prompt)
             
             # Recuperar histórico de conversa e converter para formato LangChain
             history_data = self.memory_service.get_conversation_history(user_id, session_id, limit=20)
@@ -105,7 +101,7 @@ Seja proativo e use as ferramentas quando apropriado para fornecer informações
             
             # Reverter a ordem para mostrar do mais antigo para o mais recente
             for item in reversed(history_data):
-                chat_history.append(HumanMessage(content=item['message']))
+                chat_history.append(HumanMessage(content=item["message"]))
                 chat_history.append(AIMessage(content=item['response']))
             
             # Criar executor do agente com memória
@@ -176,3 +172,4 @@ Seja proativo e use as ferramentas quando apropriado para fornecer informações
                 self.memory_service.clear_user_memory(user_id)
         except Exception as e:
             raise Exception(f"Erro ao limpar memória: {str(e)}")
+

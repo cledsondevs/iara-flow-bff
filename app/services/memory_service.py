@@ -11,7 +11,7 @@ from contextlib import contextmanager
 
 class MemoryService:
     def __init__(self):
-        self.db_path = os.getenv("DB_PATH", "./iara_flow.db")
+        self.db_path = os.getenv("DB_PATH", "./data/iara_flow.db")
         self._init_sqlite_tables()
     
     @contextmanager
@@ -381,11 +381,3 @@ class MemoryService:
             
         except Exception as e:
             return False
-
-
-# Instância global do serviço
-memory_service = MemoryService()
-
-
-
-

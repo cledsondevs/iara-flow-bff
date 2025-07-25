@@ -11,7 +11,7 @@ import sqlite3
 
 class DashboardService:
     def __init__(self):
-        self.database_path = os.getenv("DB_PATH", "./iara_flow.db")
+        self.database_path = os.getenv("DB_PATH", "./data/iara_flow.db")
         self._init_tables()
     
     def _get_connection(self):

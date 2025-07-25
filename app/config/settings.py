@@ -10,7 +10,7 @@ load_dotenv()
 class Config:
     """Configurações base da aplicação"""
     SECRET_KEY = os.getenv("SECRET_KEY", "asdf#FGSgvasgf")
-    DATABASE_PATH = os.getenv("DB_PATH", "./iara_flow.db")
+    DATABASE_PATH = os.getenv("DB_PATH", os.path.abspath("./data/iara_flow.db"))
     
     # Configurações do OpenAI
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

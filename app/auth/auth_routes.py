@@ -8,7 +8,7 @@ import os
 auth_bp = Blueprint('auth', __name__)
 
 # Configuração do banco de dados
-DATABASE_PATH = os.getenv('DB_PATH', './iara_flow.db')
+DATABASE_PATH = os.getenv('DB_PATH', './data/iara_flow.db')
 
 def get_db_connection():
     """Estabelece conexão com o banco de dados SQLite"""
@@ -96,7 +96,7 @@ def register():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@auth_bp.route('/api/auth/login', methods=['POST'])
+@auth_bp.route("/login", methods=["POST"])
 def login():
     """Endpoint para login de usuários"""
     try:

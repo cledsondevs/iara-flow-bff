@@ -18,16 +18,12 @@ def chat_with_gemini_agent():
         user_message = data.get("message")
         user_id = data.get("user_id")
         session_id = data.get("session_id")
-        api_key = data.get("api_key")  # API key fornecida pelo usuário
         
         if not user_message:
             return jsonify({"error": "Mensagem é obrigatória"}), 400
         
         if not user_id:
             return jsonify({"error": "user_id é obrigatório"}), 400
-        
-        if not api_key:
-            return jsonify({"error": "API key do Gemini é obrigatória"}), 400
         
         # Criar instância do serviço Gemini
         gemini_service = GeminiAgentService()
@@ -36,8 +32,7 @@ def chat_with_gemini_agent():
         response = gemini_service.process_message(
             user_message=user_message,
             user_id=user_id,
-            session_id=session_id,
-            api_key=api_key
+            session_id=session_id
         )
         
         return jsonify({

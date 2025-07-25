@@ -1,12 +1,16 @@
-from openai import OpenAI
-import json
-from typing import Dict, Any, Optional, List
+import os
+import uuid
 from datetime import datetime
+from typing import Dict, List, Optional, Any
+from openai import OpenAI
+
 from app.services.memory_service import MemoryService
+from app.services.api_key_service import APIKeyService
 
 class OpenAIAgentService:
     def __init__(self):
         self.memory_service = MemoryService()
+        self.api_key_service = APIKeyService()
         self.client = None
         
     def chat_with_openai(
@@ -14,7 +18,6 @@ class OpenAIAgentService:
         message: str,
         user_id: str,
         session_id: Optional[str] = None,
-        api_key: Optional[str] = None,
         model: str = "gpt-3.5-turbo"
     ) -> Dict[str, Any]:
         """
@@ -24,23 +27,17 @@ class OpenAIAgentService:
             message: Mensagem do usuário
             user_id: ID único do usuário
             session_id: ID da sessão (opcional)
-            api_key: Chave da API OpenAI (opcional)
             model: Modelo OpenAI a ser usado (padrão: gpt-3.5-turbo)
             
         Returns:
             Dict com a resposta do agente e informações da sessão
         """
         try:
-            # Configurar cliente OpenAI
-            if api_key:
-                self.client = OpenAI(api_key=api_key)
-            else:
-                # Se não forneceu api_key, usa variável de ambiente OPENAI_API_KEY
-                self.client = OpenAI()
-            
-            # Gerar session_id se não fornecido
-            if not session_id:
-                session_id = f"openai_session_{user_id}_{datetime.utcnow().isoformat()}"
+            api_key = self.api_key_service.get_api_key(user_id, "openai")
+            if not api_key:
+                raise ValueError("API key do OpenAI não encontrada para este usuário.")
+
+            self.client = OpenAI(api_key=api_key)
             
             # Recuperar histórico da conversa
             chat_history = self.memory_service.get_conversation_history(user_id, session_id)

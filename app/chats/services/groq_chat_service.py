@@ -3,30 +3,31 @@ import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from groq import Groq
-from app.services.memory_service import MemoryService
 
+from app.services.memory_service import MemoryService
+from app.services.api_key_service import APIKeyService
 
 class GroqChatService:
     def __init__(self):
         self.memory_service = MemoryService()
-        
-        # Configurar cliente Groq
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise ValueError("GROQ_API_KEY não encontrada nas variáveis de ambiente")
-        
-        self.client = Groq(api_key=api_key)
-        self.model = "llama3-8b-8192"  # Modelo padrão do Groq
+        self.api_key_service = APIKeyService()
+        self.client = None
         
     def process_message(self, user_message: str, user_id: str, session_id: Optional[str] = None, model: Optional[str] = None) -> Dict[str, Any]:
         """Processar mensagem do usuário com o Groq"""
         try:
+            api_key = self.api_key_service.get_api_key(user_id, "groq")
+            if not api_key:
+                raise ValueError("API key do Groq não encontrada para este usuário.")
+
+            self.client = Groq(api_key=api_key)
+            
             # Gerar session_id se não fornecido
             if not session_id:
                 session_id = str(uuid.uuid4())
             
             # Usar modelo especificado ou padrão
-            selected_model = model or self.model
+            selected_model = model or "llama3-8b-8192"
             
             # Detectar e processar comando "Lembre-se disso"
             processed_message, fact_saved = self.memory_service.detect_and_save_user_fact(user_message, user_id)

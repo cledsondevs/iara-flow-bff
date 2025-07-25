@@ -5,30 +5,22 @@ from typing import Dict, List, Optional, Any
 import google.generativeai as genai
 
 from app.services.memory_service import MemoryService
+from app.services.api_key_service import APIKeyService
 
 class GeminiAgentService:
-    def __init__(self, api_key: str = None):
+    def __init__(self):
         self.memory_service = MemoryService()
-        
-        # Configurar API key do Gemini
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        if not self.api_key:
-            raise ValueError("API key do Gemini não fornecida")
-        
-        genai.configure(api_key=self.api_key)
-        
-        # Configurar modelo Gemini
-        self.model = genai.GenerativeModel("gemini-1.5-flash")
-        
-    def process_message(self, user_message: str, user_id: str, session_id: Optional[str] = None, api_key: str = None) -> Dict[str, Any]:
+        self.api_key_service = APIKeyService()
+
+    def process_message(self, user_message: str, user_id: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Processar mensagem do usuário com o agente Gemini"""
         try:
-            # Usar API key fornecida se disponível
-            if api_key:
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel("gemini-1.5-flash")
-            else:
-                model = self.model
+            api_key = self.api_key_service.get_api_key(user_id, "gemini")
+            if not api_key:
+                raise ValueError("API key do Gemini não encontrada para este usuário.")
+
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-1.5-flash")
             
             # Gerar session_id se não fornecido
             if not session_id:
@@ -49,6 +41,7 @@ class GeminiAgentService:
             # Salvar a conversa na memória
             self.memory_service.save_conversation(
                 user_id=user_id,
+                session_id=session_id,
                 message=user_message,
                 response=response_text,
                 metadata={
