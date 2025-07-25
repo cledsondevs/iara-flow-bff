@@ -59,7 +59,7 @@ class APIKeyService:
         except Exception as e:
             raise Exception(f"Erro ao salvar API Key: {str(e)}")
 
-    def get_api_key(self, user_id: str, service_name: str) -> Optional[str]:
+    def get_api_key(self, user_id: str, service_name: str) -> Optional[dict]:
         try:
             with self._get_connection() as conn:
                 cur = conn.cursor()
@@ -69,7 +69,7 @@ class APIKeyService:
                 """, (user_id, service_name))
                 result = cur.fetchone()
                 cur.close()
-                return result["api_key"] if result else None
+                return {"api_key": result["api_key"]} if result else None
         except Exception as e:
             raise Exception(f"Erro ao obter API Key: {str(e)}")
 
@@ -85,5 +85,6 @@ class APIKeyService:
                 cur.close()
         except Exception as e:
             raise Exception(f"Erro ao deletar API Key: {str(e)}")
+
 
 
