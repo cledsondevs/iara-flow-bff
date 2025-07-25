@@ -4,12 +4,12 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 import google.generativeai as genai
 
-from app.services.memory_service import MemoryService
+from app.services.isolated_memory_service import IsolatedMemoryService
 from app.config.settings import Config
 
 class GeminiAgentService:
     def __init__(self):
-        self.memory_service = MemoryService()
+        self.memory_service = IsolatedMemoryService()
 
     def process_message(self, user_message: str, user_id: str, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Processar mensagem do usuário com o agente Gemini"""
