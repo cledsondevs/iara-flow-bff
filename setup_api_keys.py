@@ -14,9 +14,9 @@ def setup_api_keys():
     
     # SUBSTITUA PELAS SUAS CHAVES REAIS
     api_keys = {
-        "gemini": "AIzaSyDpLNBaYVrLSzxWj0kLD3v7n75pR5O-AfM",
-        "openai": "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", 
-        "groq": "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"
+        "gemini": "",
+        "openai": "", 
+        "groq": ""
     }
     
     # Usuário padrão para testes
