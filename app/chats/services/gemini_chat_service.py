@@ -21,10 +21,15 @@ class GeminiChatService:
         try:
             # Obter a API key do usuário do banco de dados
             api_key_data = self.api_key_service.get_api_key(user_id, "gemini")
-            if not api_key_data or not api_key_data.get("api_key"):
-                raise ValueError("API Key do Gemini não configurada para este usuário.")
             
-            genai.configure(api_key=api_key_data["api_key"])
+            # Se não encontrar chave do usuário, usar chave padrão
+            if not api_key_data or not api_key_data.get("api_key"):
+                # Usar chave padrão do sistema
+                default_key = "AIzaSyDpLNBaYVrLSzxWj0kLD3v7n75pR5O-AfM"
+                print(f"Usando chave Gemini padrão para usuário {user_id}")
+                genai.configure(api_key=default_key)
+            else:
+                genai.configure(api_key=api_key_data["api_key"])
             
             # Detectar e processar comando "Lembre-se disso"
             processed_message, fact_saved = self.memory_service.detect_and_save_user_fact(user_message, user_id)
@@ -115,4 +120,5 @@ class GeminiChatService:
                 self.memory_service.clear_user_memory(user_id)
         except Exception as e:
             raise Exception(f"Erro ao limpar memória: {str(e)}")
+
 
