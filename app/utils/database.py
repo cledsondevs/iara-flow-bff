@@ -103,11 +103,11 @@ def init_database():
                 CREATE TABLE IF NOT EXISTS api_keys (
                     id TEXT PRIMARY KEY,
                     user_id TEXT NOT NULL,
-                    service TEXT NOT NULL,
+                    service_name TEXT NOT NULL,
                     api_key TEXT NOT NULL,
                     is_active BOOLEAN DEFAULT 1,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(user_id, service)
+                    UNIQUE(user_id, service_name)
                 )
             """)
             
