@@ -483,6 +483,7 @@ class IsolatedMemoryService:
                 ("lembre disso:", "remember"),
                 ("salve isso:", "save"),
                 ("guarde isso:", "save"),
+                ("importante", "note"),
                 ("memorize isso:", "remember"),
                 ("anote isso:", "note")
             ]
