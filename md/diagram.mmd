@@ -1,0 +1,28 @@
+graph TD
+    subgraph User
+        A[Client Application] --> B{Iara Flow BFF}
+    end
+
+    subgraph Iara Flow BFF
+        B --> C[Flask App]
+        C --> D[Authentication]
+        C --> E[API Routes]
+        E --> F[Agent Service]
+        E --> G[Review Agent Service]
+        E --> H[Data Analysis Service]
+        F --> I[LangChain]
+        G --> J[Enhanced Memory Service]
+        J --> K[Memory Service]
+        H --> L[Dashboard Service]
+        K --> M[SQLite Database]
+        L --> M
+        I --> N[External APIs]
+    end
+
+    subgraph External Services
+        N[External APIs] --> O[Google Gemini]
+        N --> P[OpenAI]
+        N --> Q[Groq]
+    end
+
+

@@ -51,3 +51,11 @@ Thumbs.db
 .vercel
 
 
+
+
+# Node
+node_modules/
+
+# Markdown Docs
+markdown_docs/
+

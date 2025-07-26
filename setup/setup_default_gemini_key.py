@@ -21,7 +21,7 @@ def setup_default_gemini_key():
     print("🔑 Configurando chave Gemini padrão para todos os usuários...")
     
     # Chave Gemini padrão fornecida pelo usuário
-    default_gemini_key = "AIzaSyDpLNBaYVrLSzxWj0kLD3v7n75pR5O-AfM"
+    default_gemini_key = ""
     
     try:
         with get_db_connection() as conn:
