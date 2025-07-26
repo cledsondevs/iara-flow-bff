@@ -18,6 +18,7 @@ from app.api.routes.dashboard_routes import dashboard_bp
 
 from app.chats.routes.chat_routes_v2 import chat_v2_bp  # Nova importação
 from app.api.routes.api_key_routes import api_key_bp
+from app.api.routes.email_routes import email_bp
 
 def create_app(config_name='default'):
     """Factory function para criar a aplicação Flask"""
@@ -79,6 +80,7 @@ def create_app(config_name='default'):
 
     app.register_blueprint(chat_v2_bp)  # Novo blueprint V2
     app.register_blueprint(api_key_bp, url_prefix="/api")
+    app.register_blueprint(email_bp, url_prefix="/api")
 
     @app.route("/")
     def health_check():
