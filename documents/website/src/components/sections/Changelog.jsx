@@ -6,63 +6,149 @@ const Changelog = () => {
       <h1 className="text-4xl font-bold mb-6 text-foreground">Histórico de Mudanças (Changelog)</h1>
       
       <div className="space-y-8 text-muted-foreground">
-        {/* Versão 1.3.0 - Memória Global e Lembre-se disso */}
+        {/* Unreleased Section */}
         <div className="border-b pb-4">
-          <h2 className="text-2xl font-semibold text-primary mb-2">Versão 1.3.0 - Memória Global e Lembre-se disso</h2>
-          <p className="text-sm text-gray-500 mb-4">24 de Julho de 2025</p>
+          <h2 className="text-2xl font-semibold text-primary mb-2">[Unreleased]</h2>
+          <p className="text-sm text-gray-500 mb-4">26 de Julho de 2025</p>
+          
+          <h3 className="text-xl font-semibold text-primary mb-2">Adicionado</h3>
           <ul className="list-disc list-inside space-y-2">
-            <li><strong>Memória Global por Usuário:</strong> O assistente agora lembra de informações sobre o usuário (nome, profissão, idade) entre diferentes sessões.</li>
-            <li><strong>Extração Automática de Informações:</strong> Identifica e salva automaticamente dados pessoais do usuário a partir das mensagens.</li>
-            <li><strong>Contexto Inteligente:</strong> Informações do perfil do usuário são incluídas automaticamente no contexto de todas as conversas.</li>
-            <li><strong>Funcionalidade "Lembre-se disso":</strong> Sistema de salvamento explícito de informações pelo usuário.</li>
-            <li><strong>Palavras-chave para salvar fatos:</strong> "lembre-se disso:", "importante:", "salvar para depois:", "não esqueça:", "anotar:", "lembrar:".</li>
-            <li><strong>Detecção automática e extração de fatos:</strong> Fatos são extraídos das mensagens do usuário.</li>
-            <li><strong>Fatos salvos são incluídos automaticamente:</strong> No contexto de futuras conversas.</li>
-            <li><strong>Funciona em todos os provedores de IA:</strong> Gemini, OpenAI, Groq, LangChain.</li>
-            <li><strong>Limite de 10 fatos por usuário:</strong> Para otimização de performance.</li>
-            <li><strong>Confirmação visual:</strong> Quando um fato é salvo (✅ Informação salva na memória!).</li>
+            <li>
+              <strong>Sistema de Memória Isolado V2 (Persistência por Usuário):</strong>
+              <ul>
+                <li>Implementação de um sistema de memória completamente novo e isolado, garantindo persistência de conversas por `user_id` (independente da `session_id`).</li>
+                <li>
+                  <strong>Novas Rotas API V2 para Chat Gemini:</strong>
+                  <ul className="list-disc list-inside ml-5 space-y-1">
+                    <li>`POST /api/v2/chat/gemini` - Chat principal com memória persistente.</li>
+                    <li>`GET /api/v2/chat/gemini/memory` - Recupera todo o histórico de memória do usuário.</li>
+                    <li>`DELETE /api/v2/chat/gemini/memory` - Limpa toda a memória do usuário.</li>
+                    <li>`GET /api/v2/chat/gemini/stats` - Obtém estatísticas de uso da memória do usuário.</li>
+                    <li>`PUT /api/v2/chat/gemini/profile` - Atualiza o perfil do usuário.</li>
+                    <li>`POST /api/v2/chat/gemini/fact` - Salva fatos específicos sobre o usuário.</li>
+                    <li>`GET /api/v2/chat/gemini/context` - Obtém o contexto completo da conversa do usuário.</li>
+                    <li>`GET /api/v2/chat/health` - Health check para o serviço V2.</li>
+                    <li>`POST /api/v2/chat/migrate` - Endpoint para futuras migrações de dados.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Persistência de Histórico por `user_id`:</strong>
+                  <ul className="list-disc list-inside ml-5 space-y-1">
+                    <li>A função `get_conversation_history_isolated` no `IsolatedMemoryService` agora busca o histórico apenas por `user_id`, ignorando a `session_id`.</li>
+                    <li>O `GeminiChatServiceV2` foi ajustado para utilizar este histórico expandido para construir o contexto da conversa.</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Comandos de Memória Aprimorados:</strong>
+                  <ul className="list-disc list-inside ml-5 space-y-1">
+                    <li>A funcionalidade "Lembre-se disso:" agora utiliza o novo sistema de memória isolado, garantindo que os fatos sejam persistidos por `user_id`.</li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
           </ul>
-        </div>
 
-        {/* Versão 1.2.0 - Suporte ao Groq Chat */}
-        <div className="border-b pb-4">
-          <h2 className="text-2xl font-semibold text-primary mb-2">Versão 1.2.0 - Suporte ao Groq Chat</h2>
-          <p className="text-sm text-gray-500 mb-4">24 de Julho de 2025</p>
+          <h3 className="text-xl font-semibold text-primary mb-2">Removido</h3>
           <ul className="list-disc list-inside space-y-2">
-            <li><strong>Novo provedor de IA:</strong> Adicionado suporte ao Groq Chat.</li>
-            <li><strong>Novo endpoint:</strong> `/api/groq/chat` com memória de longo prazo.</li>
-            <li><strong>Gerenciamento de memória:</strong> Endpoints GET e DELETE para `/api/groq/memory`.</li>
-            <li><strong>Listagem de modelos:</strong> Endpoint `/api/groq/models` para listar modelos disponíveis.</li>
-            <li><strong>Modelos suportados:</strong> `llama3-8b-8192`, `llama3-70b-8192`, `mixtral-8x7b-32768`, `gemma-7b-it`.</li>
-            <li><strong>Integração completa:</strong> Com sistema de memória unificado.</li>
+            <li>
+              <strong>Código da Versão 1 (V1) do Sistema de Memória e Chat:</strong>
+              <ul>
+                <li>`app/chats/routes/chat_routes.py` (Rotas de chat V1).</li>
+                <li>`app/services/memory_service.py` (Serviço de memória V1).</li>
+                <li>`app/services/enhanced_memory_service.py` (Serviço de memória aprimorado V1).</li>
+                <li>`app/chats/services/gemini_chat_service.py` (Serviço de chat Gemini V1).</li>
+                <li>Todas as importações e registros relacionados à V1 foram removidos do `app/main.py`.</li>
+              </ul>
+            </li>
           </ul>
-        </div>
 
-        {/* Versão 1.1.0 - Memória de Longo Prazo para LangChain Agent */}
-        <div className="border-b pb-4">
-          <h2 className="text-2xl font-semibold text-primary mb-2">Versão 1.1.0 - Memória de Longo Prazo para LangChain Agent</h2>
-          <p className="text-sm text-gray-500 mb-4">24 de Julho de 2025</p>
+          <h3 className="text-xl font-semibold text-primary mb-2">Corrigido</h3>
           <ul className="list-disc list-inside space-y-2">
-            <li><strong>Extensão da memória persistente:</strong> Para o agente LangChain.</li>
-            <li><strong>Endpoint `/api/agent/chat`:</strong> Agora utiliza memória de longo prazo.</li>
-            <li><strong>Histórico de conversas:</strong> Mantido entre reinicializações do servidor.</li>
-            <li><strong>Integração com ferramentas:</strong> Preservada (web_search, file operations).</li>
-            <li><strong>Metadados aprimorados:</strong> Incluindo ferramentas utilizadas e tipo de agente.</li>
-          </ul>
-        </div>
-
-        {/* Versão 1.0.0 - Memória de Longo Prazo para Chats */}
-        <div className="border-b pb-4">
-          <h2 className="text-2xl font-semibold text-primary mb-2">Versão 1.0.0 - Memória de Longo Prazo para Chats</h2>
-          <p className="text-sm text-gray-500 mb-4">24 de Julho de 2025</p>
-          <ul className="list-disc list-inside space-y-2">
-            <li><strong>Implementação de memória persistente:</strong> Para os endpoints de chat Gemini e OpenAI.</li>
-            <li><strong>Novos endpoints:</strong> `/api/gemini/chat` e `/api/openai/chat` com memória de longo prazo.</li>
-            <li><strong>Gerenciamento de memória:</strong> Endpoints GET e DELETE para `/api/gemini/memory` e `/api/openai/memory`.</li>
-            <li><strong>Verificação de saúde:</strong> Endpoint `/api/chat/health`.</li>
-            <li><strong>Sistema de sessões:</strong> Para isolar conversas por usuário e sessão.</li>
-            <li><strong>Armazenamento persistente:</strong> De conversas no banco SQLite.</li>
-            <li><strong>Contexto de conversa:</strong> Mantido entre sessões diferentes.</li>
+            <li>
+              <strong>Problemas críticos de salvamento e acesso de memórias resolvidos:</strong>
+              <ul>
+                <li>Corrigidos problemas de DEFAULT (lower(hex(randomblob(16)))) em todas as tabelas.</li>
+                <li>Removidas expressões SQL incompatíveis que causavam erros de criação de tabelas.</li>
+                <li>Corrigidos arquivos: `backlog_generator_service.py`, `dashboard_service.py`, `review_collector_service.py`.</li>
+                <li>Sistema de memória de curto e longo prazo agora funciona corretamente.</li>
+                <li>Conversas são salvas e recuperadas adequadamente.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Dados padrão implementados no banco de dados:</strong>
+              <ul>
+                <li>Criado script `create_sample_data.py` para popular o banco com dados de exemplo.</li>
+                <li>Inseridos 3 usuários padrão: admin, demo_user, test_user.</li>
+                <li>Criadas 3 conversas de exemplo com sistema de memória funcionando.</li>
+                <li>Inseridos 3 reviews de exemplo para testes.</li>
+                <li>Banco de dados não fica mais vazio após inicialização.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Problema crítico de bloqueio do banco de dados SQLite resolvido:</strong>
+              <ul>
+                <li>Implementado gerenciamento adequado de conexões usando context managers.</li>
+                <li>Corrigidas todas as funções de autenticação para usar `with get_db_connection()`.</li>
+                <li>Eliminados vazamentos de conexão que causavam bloqueios.</li>
+                <li>Adicionado script `fix_database_lock.py` para diagnóstico e correção de bloqueios.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>APIs de Login totalmente funcionais:</strong>
+              <ul>
+                <li>Corrigidas rotas de autenticação com prefixos incorretos.</li>
+                <li>Resolvido erro "405 METHOD NOT ALLOWED".</li>
+                <li>Todas as rotas de autenticação agora funcionam corretamente:</li>
+                <ul className="list-disc list-inside ml-5 space-y-1">
+                  <li>`POST /api/auth/register` - Registro de usuários.</li>
+                  <li>`POST /api/auth/login` - Login de usuários.</li>
+                  <li>`POST /api/auth/logout` - Logout de usuários.</li>
+                  <li>`POST /api/auth/verify` - Verificação de sessão.</li>
+                  <li>`GET /api/auth/user/<id>` - Obter dados do usuário.</li>
+                </ul>
+              </ul>
+            </li>
+            <li>
+              <strong>Sistema de configuração de chaves de API restaurado:</strong>
+              <ul>
+                <li>Corrigidas rotas de API keys: `POST /api/keys` e `GET /api/keys/<user_id>/<service_name>`.</li>
+                <li>Adicionados imports necessários no arquivo `api_key_routes.py`.</li>
+                <li>Sistema de armazenamento e recuperação de chaves funcionando.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Tabelas de memória de longo prazo criadas corretamente:</strong>
+              <ul>
+                <li>Corrigida criação automática das tabelas `conversations` e `user_profiles`.</li>
+                <li>MemoryService agora usa configuração centralizada do banco.</li>
+                <li>Criação automática do diretório `data/` se não existir.</li>
+                <li>Sincronização entre todos os serviços de banco de dados.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Configuração de banco de dados unificada:</strong>
+              <ul>
+                <li>Unificada configuração em `Config.DATABASE_PATH`.</li>
+                <li>Consistência entre todos os arquivos (`auth_routes.py`, `memory_service.py`, `database.py`).</li>
+                <li>Criação automática de diretórios em todos os pontos de acesso.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Usuário padrão criado automaticamente:</strong>
+              <ul>
+                <li>Criação automática de usuário administrador na inicialização.</li>
+                <li>**Credenciais:** `admin` / `admin` (email: `admin@iaraflow.com`).</li>
+                <li>Script independente `create_default_user.py` para criação manual.</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Dependências instaladas e configuradas:</strong>
+              <ul>
+                <li>Instaladas todas as dependências necessárias: Flask, LangChain, Google AI, etc.</li>
+                <li>Aplicação Flask inicializa corretamente sem erros de módulos.</li>
+                <li>Todas as funcionalidades principais testadas e funcionando.</li>
+              </ul>
+            </li>
           </ul>
         </div>
 
@@ -192,5 +278,6 @@ const Changelog = () => {
 };
 
 export default Changelog;
+
 
 
