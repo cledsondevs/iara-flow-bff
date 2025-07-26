@@ -94,21 +94,19 @@ const ApiReference = () => {
           Endpoints para conversar com diferentes provedores de IA com memória de longo prazo.
         </p>
 
-        {/* Gemini Chat */}
+        {/* Gemini Chat V2 */}
         <EndpointCard
           method="POST"
-          endpoint="/api/gemini/chat"
-          title="Chat com Gemini"
-          description="Conversar com o Google Gemini com memória de longo prazo e memória global por usuário."
+          endpoint="/api/v2/chat/gemini"
+          title="Chat com Gemini (V2)"
+          description="Conversar com o Google Gemini com o novo sistema de memória isolado por usuário."
           requestBody={`{
   "message": "Olá! Meu nome é João e sou desenvolvedor.",
-  "user_id": "user123",
-  "session_id": "session456"
+  "user_id": "user123"
 }`}
           responseBody={`{
   "success": true,
   "response": "Olá João! Prazer em conhecê-lo. Como desenvolvedor, em que área você trabalha?",
-  "session_id": "session456",
   "model": "gemini-1.5-flash",
   "timestamp": "2025-01-24T10:30:00Z"
 }`}
@@ -193,12 +191,51 @@ const ApiReference = () => {
           Endpoints para gerenciar a memória de conversas dos usuários.
         </p>
 
-        {/* Get Memory */}
+        {/* Get Memory V2 */}
+        <EndpointCard
+          method="GET"
+          endpoint="/api/v2/chat/gemini/memory"
+          title="Recuperar Memória Gemini (V2)"
+          description="Recupera todo o histórico de memória do usuário para o serviço Gemini V2."
+          queryParams={[
+            { name: 'user_id', required: true, description: 'ID único do usuário' }
+          ]}
+          responseBody={`{
+  "success": true,
+  "memory": [
+    {
+      "id": 1,
+      "user_message": "Olá!",
+      "assistant_message": "Olá! Como posso ajudá-lo?",
+      "timestamp": "2025-01-24T10:30:00Z"
+    }
+  ],
+  "timestamp": "2025-01-24T10:35:00Z"
+}`}
+        />
+
+        {/* Clear Memory V2 */}
+        <EndpointCard
+          method="DELETE"
+          endpoint="/api/v2/chat/gemini/memory"
+          title="Limpar Memória Gemini (V2)"
+          description="Limpa toda a memória do usuário para o serviço Gemini V2."
+          requestBody={`{
+  "user_id": "user123"
+}`}
+          responseBody={`{
+  "success": true,
+  "message": "Memória limpa com sucesso",
+  "timestamp": "2025-01-24T10:35:00Z"
+}`}
+        />
+
+        {/* Get Memory (Other Providers) */}
         <EndpointCard
           method="GET"
           endpoint="/api/{provider}/memory"
-          title="Recuperar Memória"
-          description="Recuperar histórico de conversas para um usuário específico. Substitua {provider} por: gemini, openai, groq ou agent."
+          title="Recuperar Memória (Outros Provedores)"
+          description="Recuperar histórico de conversas para um usuário específico. Substitua {provider} por: openai, groq ou agent."
           queryParams={[
             { name: 'user_id', required: true, description: 'ID único do usuário' },
             { name: 'session_id', required: false, description: 'ID da sessão específica (opcional)' }
@@ -217,12 +254,12 @@ const ApiReference = () => {
 }`}
         />
 
-        {/* Clear Memory */}
+        {/* Clear Memory (Other Providers) */}
         <EndpointCard
           method="DELETE"
           endpoint="/api/{provider}/memory"
-          title="Limpar Memória"
-          description="Limpar histórico de conversas para um usuário específico. Substitua {provider} por: gemini, openai, groq ou agent."
+          title="Limpar Memória (Outros Provedores)"
+          description="Limpar histórico de conversas para um usuário específico. Substitua {provider} por: openai, groq ou agent."
           requestBody={`{
   "user_id": "user123",
   "session_id": "session456"
@@ -230,6 +267,77 @@ const ApiReference = () => {
           responseBody={`{
   "success": true,
   "message": "Memória limpa com sucesso",
+  "timestamp": "2025-01-24T10:35:00Z"
+}`}
+        />
+
+        {/* Update User Profile */}
+        <EndpointCard
+          method="PUT"
+          endpoint="/api/v2/chat/gemini/profile"
+          title="Atualizar Perfil do Usuário (Gemini V2)"
+          description="Atualiza o perfil do usuário no sistema de memória isolado."
+          requestBody={`{
+  "user_id": "user123",
+  "profile_data": {
+    "name": "João Silva",
+    "profession": "Engenheiro de Software"
+  }
+}`}
+          responseBody={`{
+  "success": true,
+  "message": "Perfil atualizado com sucesso",
+  "timestamp": "2025-01-24T10:35:00Z"
+}`}
+        />
+
+        {/* Save User Fact */}
+        <EndpointCard
+          method="POST"
+          endpoint="/api/v2/chat/gemini/fact"
+          title="Salvar Fato do Usuário (Gemini V2)"
+          description="Salva um fato específico sobre o usuário no sistema de memória isolado."
+          requestBody={`{
+  "user_id": "user123",
+  "fact": "Gosto de café sem açúcar."
+}`}
+          responseBody={`{
+  "success": true,
+  "message": "Fato salvo com sucesso",
+  "timestamp": "2025-01-24T10:35:00Z"
+}`}
+        />
+
+        {/* Get User Context */}
+        <EndpointCard
+          method="GET"
+          endpoint="/api/v2/chat/gemini/context"
+          title="Obter Contexto do Usuário (Gemini V2)"
+          description="Obtém o contexto completo da conversa do usuário, incluindo perfil e fatos salvos."
+          queryParams={[
+            { name: 'user_id', required: true, description: 'ID único do usuário' }
+          ]}
+          responseBody={`{
+  "success": true,
+  "context": {
+    "profile": {
+      "name": "João Silva",
+      "profession": "Engenheiro de Software"
+    },
+    "facts": [
+      "Gosto de café sem açúcar."
+    ],
+    "conversation_history": [
+      {
+        "role": "user",
+        "content": "Olá! Meu nome é João."
+      },
+      {
+        "role": "assistant",
+        "content": "Olá João! Como posso ajudar?"
+      }
+    ]
+  },
   "timestamp": "2025-01-24T10:35:00Z"
 }`}
         />
@@ -242,16 +350,29 @@ const ApiReference = () => {
           Endpoints para verificação de saúde e listagem de modelos disponíveis.
         </p>
 
-        {/* Health Check */}
+        {/* Health Check V2 */}
+        <EndpointCard
+          method="GET"
+          endpoint="/api/v2/chat/health"
+          title="Verificação de Saúde Gemini (V2)"
+          description="Verificar se o serviço Gemini V2 está funcionando corretamente."
+          responseBody={`{
+  "success": true,
+  "message": "Serviço Gemini V2 está funcionando!",
+  "timestamp": "2025-01-24T10:35:00Z"
+}`}
+        />
+
+        {/* Health Check (Other Providers) */}
         <EndpointCard
           method="GET"
           endpoint="/api/chat/health"
-          title="Verificação de Saúde dos Chats"
-          description="Verificar se todos os serviços de chat estão funcionando corretamente."
+          title="Verificação de Saúde dos Chats (Outros Provedores)"
+          description="Verificar se os serviços de chat (OpenAI e Groq) estão funcionando corretamente."
           responseBody={`{
   "success": true,
-  "message": "Serviços de chat Gemini, OpenAI e Groq estão funcionando!",
-  "services": ["gemini", "openai", "groq"],
+  "message": "Serviços de chat OpenAI e Groq estão funcionando!",
+  "services": ["openai", "groq"],
   "timestamp": "2025-01-24T10:35:00Z"
 }`}
         />
@@ -390,4 +511,5 @@ const ApiReference = () => {
 };
 
 export default ApiReference;
+
 
