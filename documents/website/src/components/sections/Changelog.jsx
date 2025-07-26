@@ -104,14 +104,14 @@ const Changelog = () => {
                   <li>`POST /api/auth/login` - Login de usuários.</li>
                   <li>`POST /api/auth/logout` - Logout de usuários.</li>
                   <li>`POST /api/auth/verify` - Verificação de sessão.</li>
-                  <li>`GET /api/auth/user/<id>` - Obter dados do usuário.</li>
+                  <li>`GET /api/auth/user/&lt;id&gt;` - Obter dados do usuário.</li>
                 </ul>
               </ul>
             </li>
             <li>
               <strong>Sistema de configuração de chaves de API restaurado:</strong>
               <ul>
-                <li>Corrigidas rotas de API keys: `POST /api/keys` e `GET /api/keys/<user_id>/<service_name>`.</li>
+                  <li>Corrigidas rotas de API keys: `POST /api/keys` e `GET /api/keys/&lt;user_id&gt;/&lt;service_name&gt;`.</li>
                 <li>Adicionados imports necessários no arquivo `api_key_routes.py`.</li>
                 <li>Sistema de armazenamento e recuperação de chaves funcionando.</li>
               </ul>
