@@ -5,6 +5,102 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### Added
+- **Adicionado endpoint de envio de e-mail (tolls) 26/07/2025**
+-  `POST /api/send-email` - Envio de e-mail.
+# Endpoint de Envio de E-mail - Iara Flow BFF
+
+## Resumo
+Foi criado um novo endpoint para envio de e-mails via Gmail no projeto Iara Flow BFF. O endpoint permite que usuários enviem e-mails especificando o destinatário, assunto e conteúdo.
+
+## Endpoints Criados
+
+### 1. POST /api/send-email
+Endpoint principal para envio de e-mails.
+
+**Parâmetros (JSON):**
+```json
+{
+  "recipient": "destinatario@exemplo.com",
+  "subject": "Assunto do e-mail",
+  "content": "Conteúdo do e-mail em texto simples"
+}
+```
+
+**Resposta de Sucesso (200):**
+```json
+{
+  "success": true,
+  "message": "E-mail enviado com sucesso para destinatario@exemplo.com",
+  "data": {
+    "recipient": "destinatario@exemplo.com",
+    "subject": "Assunto do e-mail",
+    "sender": "cledsonborgesalves@gmail.com"
+  }
+}
+```
+
+**Possíveis Erros:**
+- 400: Dados não fornecidos ou campos obrigatórios ausentes
+- 401: Erro de autenticação SMTP
+- 500: Erro interno do servidor ou SMTP
+
+### 2. GET /api/email-config
+Endpoint para consultar configurações de e-mail (sem expor credenciais).
+
+**Resposta (200):**
+```json
+{
+  "sender_email": "cledsonborgesalves@gmail.com",
+  "smtp_server": "smtp.gmail.com",
+  "smtp_port": 587,
+  "encryption": "TLS"
+}
+```
+
+## Configurações Utilizadas
+
+- **Servidor SMTP:** smtp.gmail.com
+- **Porta:** 587
+- **Criptografia:** TLS
+- **E-mail remetente:** cledsonborgesalves@gmail.com
+- **Senha de aplicativo:** 
+
+## Arquivos Modificados
+
+1. **app/api/routes/email_routes.py** (novo arquivo)
+   - Contém a implementação dos endpoints de e-mail
+   - Tratamento de erros específicos para SMTP
+   - Validação de campos obrigatórios
+
+2. **app/main.py** (modificado)
+   - Adicionado import do blueprint de e-mail
+   - Registrado o blueprint com prefixo /api
+
+## Teste Realizado
+
+O endpoint foi testado localmente com sucesso:
+- Servidor iniciado na porta 5000
+- Teste de envio de e-mail para cledsonborgesalves@gmail.com
+- Resposta HTTP 200 com confirmação de envio
+
+
+## Como Usar
+
+1. Faça uma requisição POST para `/api/send-email`
+2. Inclua os campos obrigatórios no JSON: recipient, subject, content
+3. O e-mail será enviado via Gmail usando as credenciais configuradas
+4. Verifique a resposta para confirmar o envio
+
+## Próximos Passos Sugeridos
+
+1. Implementar autenticação adequada (token_required)
+2. Adicionar suporte a anexos
+3. Implementar templates de e-mail
+4. Adicionar logs de auditoria para envios
+5. Configurar rate limiting para evitar spam
+
+
 ## [Unreleased]
 
 ### Added
